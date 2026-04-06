@@ -1,6 +1,3 @@
-# ==========================================
-# Данные баз данных (БД и кэши)
-# ==========================================
 # PostgreSQL
 postgres/pgdata/
 postgres/pglogs/
@@ -24,9 +21,7 @@ airflow/postgres/
 .localstack_data/
 .localstack/
 
-# ==========================================
-# Python кэш и временные файлы
-# ==========================================
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
@@ -46,48 +41,58 @@ tests/.coverage
 htmlcov/
 *.cover
 
-# ==========================================
-# IDE и редакторы
-# ==========================================
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# ==========================================
-# OS и временные файлы
-# ==========================================
+# OS
 .DS_Store
 Thumbs.db
 *.tmp
 *.log
 
-# ==========================================
-# Docker volumes (если не примонтированы)
-# ==========================================
+# Docker volumes
 *.volume
 
-# ==========================================
-# Секреты и окружение
-# ==========================================
 .env
 .env.local
 .env.*.local
 *.secret
 *.key
 
-# ==========================================
-# Исключения (разрешаем конкретные файлы)
-# ==========================================
-# Оставляем архитектуру и документацию
+# except
 !postgres/postgres_arch/
 !clickhouse/clickhouse_arch/
 !postgres/*.png
 !postgres/*.md
 
-# Оставляем инициализационные скрипты
+# initialize scripts
 !clickhouse/clickhouse-init/
 
-# Оставляем конфигурацию
+# conf
 !postgres/config/
+
+# front-end
+front-end/node_modules/
+front-end/package-lock.json
+
+# assembly
+front-end/dist/
+
+# vite
+front-end/.vite/
+
+# cache + logs
+front-end/.eslintcache
+front-end/tsconfig.tsbuildinfo
+
+# IDE
+front-end/.vscode/
+front-end/.idea/
+
+# OS files
+front-end/.DS_Store
+front-end/Thumbs.db

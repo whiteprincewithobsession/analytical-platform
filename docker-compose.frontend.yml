@@ -1,0 +1,9 @@
+name: retail_frontend
+
+services:
+  frontend:
+    build: ./front-end
+    container_name: retail_frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped

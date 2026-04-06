@@ -1,0 +1,234 @@
+name: analytical_platform
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: retail_container
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "0.0.0.0:5430:5432"
+    volumes:
+      - ./postgres/pgdata:/var/lib/postgresql/data
+      - ./postgres/backups:/backups
+      - ./postgres/wal:/backup/wal
+      - ./postgres/pglogs:/var/log/postgresql
+      - ./postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: >
+      postgres -c config_file=/etc/postgresql/postgresql.conf
+      -c max_connections=1000
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.7
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    networks:
+      - retail_network
+
+  # docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' olap_retail
+  # 172.19.0.3
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: olap_retail
+    ports:
+      - "0.0.0.0:8123:8123"
+      - "0.0.0.0:9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ./clickhouse/clickhouse-init:/docker-entrypoint-initdb.d
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    networks:
+      - retail_network
+
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    ports:
+      - "0.0.0.0:4566:4566"
+      - "0.0.0.0:4510-4559:4510-4559"
+      - "0.0.0.0:8055:8080"
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - DATA_DIR=/data
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - ./.localstack_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "awslocal", "s3", "ls"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    networks:
+      - retail_network
+
+# docker exec -it retail_container psql -U admin -c 'CREATE DATABASE metabaseappdb;'
+  # metabase:
+  #   image: metabase/metabase:latest
+  #   container_name: metabase
+  #   hostname: metabase
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     MB_DB_TYPE: postgres
+  #     MB_DB_DBNAME: metabaseappdb
+  #     MB_DB_PORT: 5432
+  #     MB_DB_USER: admin
+  #     MB_DB_PASS: admin
+  #     MB_DB_HOST: postgres
+  #     JAVA_OPTS: "-Xmx2g"
+  #   volumes:
+  #     - ./metabase/plugins:/plugins
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: unless-stopped
+  #   tty: true
+  #   stdin_open: true
+  #   networks:
+  #     - retail_network
+
+  # docker exec -it superset pip install clickhouse-connect>=0.6.8
+  superset:
+    image: apache/superset:4.0.1
+    container_name: superset
+    ports:
+      - "0.0.0.0:8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_DATABASE_URI: "postgresql+psycopg2://${SUPERSET_POSTGRES_USER}:${SUPERSET_POSTGRES_PASSWORD}@supersetdb:5432/${SUPERSET_POSTGRES_DB}"
+    volumes:
+      - ./superset_home:/app/superset_home
+      - ./docker/requirements-local.txt:/app/requirements-local.txt
+      - ./superset-custom/templates/appbuilder:/usr/local/lib/python3.9/site-packages/flask_appbuilder/templates/appbuilder:rw
+      - ./superset-custom/templates/superset:/app/superset/templates/superset:ro
+      - ./superset-custom/static:/app/superset/static/custom:rw
+      - ./superset-custom/assets:/app/superset/static/assets/local:rw
+    networks:
+      - retail_network
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    
+  supersetdb:
+    image: postgres:16
+    container_name: supersetdb
+    environment:
+      POSTGRES_USER: ${SUPERSET_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${SUPERSET_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${SUPERSET_POSTGRES_DB}
+    volumes:
+      - ./supersetdb_data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:5431:5432"
+    networks:
+      - retail_network
+    restart: unless-stopped
+
+  airflow-postgres:
+    image: postgres:16
+    container_name: airflow_metadata
+    environment:
+      POSTGRES_USER: ${AIRFLOW_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${AIRFLOW_POSTGRES_DB}
+    volumes:
+      - ./airflow/postgres:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:5433:5432"
+    networks:
+      - retail_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AIRFLOW_POSTGRES_USER} -d ${AIRFLOW_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  airflow-standalone:
+    image: apache/airflow:2.9.3
+    container_name: airflow_standalone
+    ports:
+      - "0.0.0.0:8080:8080"
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow-postgres:5432/${AIRFLOW_POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: '${AIRFLOW_FERNET_KEY}'
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_WWW_USERNAME}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_WWW_PASSWORD}
+      _PIP_ADDITIONAL_REQUIREMENTS: |
+        apache-airflow-providers-postgres==5.7.1
+        apache-airflow-providers-amazon==8.13.0
+        boto3==1.29.7
+        psycopg2-binary==2.9.9
+        pandas==2.1.3
+        pyarrow==14.0.1
+        s3fs==2023.12.0
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: standalone 
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    networks:
+      - retail_network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+
+
+networks:
+  retail_network:
+    driver: bridge
+
+volumes:
+  clickhouse_data:
+  clickhouse_logs:

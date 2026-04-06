@@ -1,0 +1,21 @@
+CREATE TABLE promo.promotions (
+    id serial PRIMARY KEY,
+    code varchar(32) UNIQUE NOT NULL,
+    name varchar(128) NOT NULL,
+    description text,
+    active boolean NOT NULL DEFAULT true,
+    type varchar(32) NOT NULL,
+    discount_type varchar(16),
+    discount_value numeric(12,2),
+    start_date timestamptz NOT NULL,
+    end_date timestamptz NOT NULL,
+    usage_limit int,
+    per_user_limit int,
+    min_purchase numeric(12,2),
+    applicable_products jsonb,
+    applicable_customers jsonb,
+    stackable boolean NOT NULL DEFAULT false,
+    meta jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);

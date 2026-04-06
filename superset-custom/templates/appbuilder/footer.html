@@ -1,0 +1,154 @@
+<style>
+.footer-login {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 30px 0;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 1000;
+    animation: slideUpFooter 0.6s ease-out;
+}
+
+@keyframes slideUpFooter {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.footer-section {
+    flex: 1;
+    min-width: 200px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 25px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.footer-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.footer-link:hover {
+    color: white;
+    transform: translateY(-1px);
+}
+
+.footer-info {
+    text-align: right;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+}
+
+.footer-powered {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.footer-powered a {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.footer-powered a:hover {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .footer-login {
+        padding: 20px 0;
+        position: relative;
+    }
+    
+    .footer-container {
+        padding: 0 15px;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+    
+    .footer-section {
+        min-width: auto;
+    }
+    
+    .footer-info {
+        text-align: center;
+    }
+    
+    .footer-powered {
+        justify-content: center;
+    }
+    
+    .footer-links {
+        gap: 15px;
+    }
+}
+</style>
+
+<footer class="footer-login">
+    <div class="footer-container">
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="footer-links">
+                    <a href="#" class="footer-link">
+                        <i class="fa fa-book"></i>
+                        {{_("Documentation")}}
+                    </a>
+                    <a href="#" class="footer-link">
+                        <i class="fa fa-shield-alt"></i>
+                        {{_("Security")}}
+                    </a>
+                    <a href="#" class="footer-link">
+                        <i class="fa fa-life-ring"></i>
+                        {{_("Support")}}
+                    </a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <div class="footer-info">
+                    <div class="footer-powered">
+                        <span>{{_("Powered by")}}</span>
+                        <a href="https://superset.apache.org/" target="_blank">Apache Superset</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>

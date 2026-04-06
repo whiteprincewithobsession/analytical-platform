@@ -1,0 +1,241 @@
+<style>
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-link {
+  color: white !important;
+  text-decoration: none;
+  padding: 12px 20px !important;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.nav-link:hover,
+.nav-link:focus {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  color: white !important;
+}
+
+.nav-link i {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+/* Dropdown styles */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  position: relative;
+  padding-right: 35px !important;
+}
+
+.dropdown-toggle::after {
+  content: '';
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid white;
+  transition: transform 0.3s ease;
+}
+
+.dropdown.open .dropdown-toggle::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.dropdown-menu {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px);
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+  padding: 8px 0;
+  margin-top: 8px !important;
+  animation: dropdownFade 0.3s ease;
+  min-width: 220px;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-menu li {
+  margin: 0;
+}
+
+.dropdown-menu a {
+  color: #374151 !important;
+  text-decoration: none;
+  padding: 12px 20px !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  font-size: 14px;
+  border: none !important;
+  background: transparent !important;
+}
+
+.dropdown-menu a:hover,
+.dropdown-menu a:focus {
+  background: rgba(102, 126, 234, 0.1) !important;
+  color: #667eea !important;
+  transform: translateX(5px);
+}
+
+.dropdown-menu a i {
+  color: #667eea;
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+}
+
+.dropdown-menu .divider {
+  background: rgba(0, 0, 0, 0.1) !important;
+  margin: 8px 0 !important;
+  height: 1px;
+}
+
+/* Active state */
+.nav-link.active {
+  background: rgba(102, 126, 234, 0.3) !important;
+  border-color: rgba(102, 126, 234, 0.5);
+  color: white !important;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .navbar-nav {
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+  }
+  
+  .nav-link {
+    padding: 15px 20px !important;
+    border-radius: 10px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .dropdown-menu {
+    position: static !important;
+    float: none !important;
+    width: 100%;
+    margin-top: 5px !important;
+    box-shadow: none !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+  }
+  
+  .dropdown-toggle::after {
+    right: 15px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .nav-link,
+  .dropdown-menu a,
+  .dropdown-toggle::after {
+    transition: none;
+  }
+  
+  .dropdown-menu {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .nav-link {
+    border: 2px solid white;
+    background: rgba(0, 0, 0, 0.8);
+  }
+  
+  .dropdown-menu {
+    border: 2px solid #000 !important;
+    background: #fff !important;
+  }
+  
+  .dropdown-menu a {
+    color: #000 !important;
+  }
+}
+</style>
+
+{% macro menu_item(item) %}
+    <a class="nav-link" href="{{item.get_url()}}">
+       {% if item.icon %}
+        <i class="fa fa-fw {{item.icon}}"></i>
+    {% endif %}
+    {{_(item.label)}}</a>
+{% endmacro %}
+
+<ul class="navbar-nav">
+{% for item1 in menu.get_list() %}
+    {% if item1 | is_menu_visible %}
+        {% if item1.childs %}
+            <li class="dropdown nav-item">
+            <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">
+            {% if item1.icon %}
+                <i class="fa {{item1.icon}}"></i>
+            {% endif %}
+            {{_(item1.label)}}</a>
+            <ul class="dropdown-menu">
+            {% for item2 in item1.childs %}
+                {% if item2 %}
+                    {% if item2.name == '-' %}
+                        {% if not loop.last %}
+                          <li class="divider"></li>
+                        {% endif %}
+                    {% elif item2 | is_menu_visible %}
+                        <li>{{ menu_item(item2) }}</li>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            </ul></li>
+        {% else %}
+            <li class="nav-item">
+                {{ menu_item(item1) }}
+            </li>
+        {% endif %}
+    {% endif %}
+{% endfor %}
+</ul>

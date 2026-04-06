@@ -1,0 +1,260 @@
+{% import 'appbuilder/baselib.html' as baselib with context %}
+
+{% if appbuilder %}
+  {% set app_name = appbuilder.app_name %}
+{% endif %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>{% block page_title %}{{app_name}}{% endblock %}</title>
+
+    {% block head_meta %}
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="description" content="{{app_name}} - Modern Analytics Platform">
+      <meta name="author" content="Apache Superset">
+      <meta name="theme-color" content="#667eea">
+    {% endblock %}
+
+    {% block head_css %}
+      <link href="{{url_for('appbuilder.static',filename='css/bootstrap.min.css')}}" rel="stylesheet">
+      <link href="{{url_for('appbuilder.static',filename='css/fontawesome/fontawesome.min.css')}}" rel="stylesheet">
+      <link href="{{url_for('appbuilder.static',filename='css/fontawesome/regular.min.css')}}" rel="stylesheet">
+      <link href="{{url_for('appbuilder.static',filename='css/fontawesome/solid.min.css')}}" rel="stylesheet">
+      <link href="{{url_for('appbuilder.static',filename='css/fontawesome/brands.min.css')}}" rel="stylesheet">
+      <link href="{{url_for('appbuilder.static',filename='css/fontawesome/v4-shims.min.css')}}" rel="stylesheet">
+      {% if appbuilder.app_theme %}
+        <link href="{{url_for('appbuilder.static',filename='css/themes/'+ appbuilder.app_theme )}}" rel="stylesheet">
+      {% endif %}
+      <link href="{{url_for('appbuilder.static',filename='css/bootstrap-datepicker/bootstrap-datepicker3.min.css')}}" rel="stylesheet">
+      <link href="{{url_for('appbuilder.static',filename='css/select2/select2.min.css')}}" rel="stylesheet">
+      <link href="{{url_for('appbuilder.static',filename='css/select2/select2-bootstrap.min.css')}}" rel="stylesheet">
+      <link href="{{url_for('appbuilder.static',filename='css/flags/flags16.css')}}" rel="stylesheet">
+      <link href="{{url_for('appbuilder.static',filename='css/ab.css')}}" rel="stylesheet">
+      
+      <style>
+        /* Global Styles */
+        :root {
+          --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          --primary-color: #667eea;
+          --secondary-color: #764ba2;
+          --glass-bg: rgba(255, 255, 255, 0.95);
+          --glass-border: rgba(255, 255, 255, 0.2);
+          --text-dark: #1a1a2e;
+          --text-light: #6b7280;
+        }
+        
+        * {
+          box-sizing: border-box;
+        }
+        
+        body {
+          background: var(--primary-gradient);
+          margin: 0;
+          padding: 0;
+          min-height: 100vh;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+          position: relative;
+          overflow-x: hidden;
+        }
+        
+        body::before {
+          content: '';
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          width: 200%;
+          height: 200%;
+          background: 
+            radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/%3E%3C/svg%3E") repeat;
+          animation: floatBackground 60s linear infinite;
+          z-index: -2;
+          transform: translate(-50%, -50%);
+        }
+        
+        @keyframes floatBackground {
+          0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+          50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.1); }
+          100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
+        }
+        
+        /* Floating shapes animation */
+        .floating-shapes {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: -1;
+          overflow: hidden;
+        }
+        
+        .floating-shapes .shape {
+          position: absolute;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          animation: floatShape 20s infinite ease-in-out;
+        }
+        
+        .floating-shapes .shape:nth-child(1) {
+          width: 100px;
+          height: 100px;
+          top: 10%;
+          left: 10%;
+          animation-delay: 0s;
+        }
+        
+        .floating-shapes .shape:nth-child(2) {
+          width: 150px;
+          height: 150px;
+          top: 70%;
+          right: 10%;
+          animation-delay: -5s;
+        }
+        
+        .floating-shapes .shape:nth-child(3) {
+          width: 80px;
+          height: 80px;
+          bottom: 20%;
+          left: 20%;
+          animation-delay: -10s;
+        }
+        
+        .floating-shapes .shape:nth-child(4) {
+          width: 120px;
+          height: 120px;
+          top: 30%;
+          right: 20%;
+          animation-delay: -15s;
+        }
+        
+        @keyframes floatShape {
+          0%, 100% { 
+            transform: translateY(0) rotate(0deg) scale(1);
+            opacity: 0.7;
+          }
+          33% { 
+            transform: translateY(-30px) rotate(120deg) scale(1.1);
+            opacity: 1;
+          }
+          66% { 
+            transform: translateY(15px) rotate(240deg) scale(0.9);
+            opacity: 0.8;
+          }
+        }
+        
+        /* Smooth scrolling */
+        html {
+          scroll-behavior: smooth;
+        }
+        
+        /* Selection color */
+        ::selection {
+          background: rgba(102, 126, 234, 0.3);
+          color: white;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Loading state */
+        .loading {
+          opacity: 0.7;
+          pointer-events: none;
+        }
+        
+        /* Focus styles */
+        *:focus {
+          outline: 2px solid rgba(102, 126, 234, 0.5);
+          outline-offset: 2px;
+        }
+        
+        /* Print styles */
+        @media print {
+          body {
+            background: white !important;
+          }
+          
+          .floating-shapes,
+          body::before {
+            display: none;
+          }
+        }
+      </style>
+    {% endblock %}
+
+    {% block head_js %}
+      <script src="{{url_for('appbuilder.static',filename='js/jquery-latest.js')}}" nonce="{{baselib.get_nonce()}}"></script>
+      <script src="{{url_for('appbuilder.static',filename='js/ab_filters.js')}}" nonce="{{baselib.get_nonce()}}"></script>
+      <script src="{{url_for('appbuilder.static',filename='js/ab_actions.js')}}" nonce="{{baselib.get_nonce()}}"></script>
+      
+      <script nonce="{{baselib.get_nonce()}}">
+        // Global JavaScript enhancements
+        document.addEventListener('DOMContentLoaded', function() {
+          // Add floating shapes to body
+          const shapesContainer = document.createElement('div');
+          shapesContainer.className = 'floating-shapes';
+          shapesContainer.innerHTML = `
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+          `;
+          document.body.appendChild(shapesContainer);
+          
+          // Add loading state management
+          document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (form.method === 'post') {
+              form.classList.add('loading');
+            }
+          });
+          
+          // Enhanced error handling
+          window.addEventListener('error', function(e) {
+            console.error('Application error:', e.error);
+          });
+        });
+      </script>
+    {% endblock %}
+  </head>
+  
+  <body>
+    {% block body %}
+    {% endblock %}
+
+    {% block tail_js %}
+      <script src="{{url_for('appbuilder.static',filename='js/bootstrap.min.js')}}" nonce="{{baselib.get_nonce()}}"></script>
+      <script src="{{url_for('appbuilder.static',filename='js/bootstrap-datepicker/bootstrap-datepicker.min.js')}}" nonce="{{baselib.get_nonce()}}"></script>
+      <script src="{{url_for('appbuilder.static',filename='js/select2/select2.min.js')}}" nonce="{{baselib.get_nonce()}}"></script>
+      <script src="{{url_for('appbuilder.static',filename='js/ab.js')}}" nonce="{{baselib.get_nonce()}}"></script>
+    {% endblock %}
+
+    {% block add_tail_js %}
+    {% endblock %}
+
+    {% block tail %}
+    {% endblock %}
+  </body>
+</html>

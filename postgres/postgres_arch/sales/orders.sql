@@ -1,0 +1,23 @@
+CREATE TABLE sales.orders (
+  id bigserial PRIMARY KEY ,
+  user_id int NOT NULL REFERENCES core.users(id),
+  order_date date NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  status varchar(20) NOT NULL,
+  total_amount numeric(12,2) NOT NULL,
+  payment_status_code varchar(32) REFERENCES sales.payment_statuses(code),
+  payment_method_code varchar(32) REFERENCES sales.payment_methods(code),
+  delivery_type_code varchar(32) REFERENCES sales.delivery_types(code),
+  address_id int REFERENCES core.addresses(id),
+  currency_code varchar(8) NOT NULL REFERENCES sales.currencies(code),
+  currency_rate_at_order numeric(16,8),
+  loyalty_level_id int REFERENCES system.loyalty_levels(id),
+  promo_code varchar(40),
+  discount_amount numeric(12,2) DEFAULT 0.00,
+  source_channel varchar(40),
+  device_type_id int REFERENCES system.device_types(id),
+  comments text,
+  external_order_id varchar(40),
+  tracking_number varchar(60)
+)

@@ -1,0 +1,89 @@
+{% extends 'appbuilder/init.html' %}
+{% import 'appbuilder/baselib.html' as baselib %}
+
+{% block body %}
+    {% include 'appbuilder/general/confirm.html' %}
+    {% include 'appbuilder/general/alert.html' %}
+
+    {% block navbar %}
+        <header class="top" role="header">
+        {% include 'appbuilder/navbar.html' %}
+        </header>
+    {% endblock %}
+
+    <div class="main-content">
+        {% block messages %}
+            {% include 'appbuilder/flash.html' %}
+        {% endblock %}
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    {% block footer %}
+        <footer>
+        {% include 'appbuilder/footer.html' %}
+        </footer>
+    {% endblock %}
+{% endblock %}
+
+<style>
+.main-content {
+    min-height: 100vh;
+    padding: 80px 0 100px 0;
+}
+
+/* Стили для flash сообщений */
+.alert {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.alert-success {
+    background: rgba(72, 187, 120, 0.95);
+    backdrop-filter: blur(20px);
+    color: white;
+}
+
+.alert-danger {
+    background: rgba(245, 101, 101, 0.95);
+    backdrop-filter: blur(20px);
+    color: white;
+}
+
+.alert-warning {
+    background: rgba(246, 173, 85, 0.95);
+    backdrop-filter: blur(20px);
+    color: white;
+}
+
+.alert-info {
+    background: rgba(102, 126, 234, 0.95);
+    backdrop-filter: blur(20px);
+    color: white;
+}
+
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    width: 200%;
+    height: 200%;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/%3E%3C/svg%3E") repeat;
+    animation: float 30s linear infinite;
+    z-index: -1;
+}
+
+@keyframes float {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+</style>

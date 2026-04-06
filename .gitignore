@@ -63,29 +63,29 @@ Thumbs.db
 *.secret
 *.key
 
-# except
+# Except
 !postgres/postgres_arch/
 !clickhouse/clickhouse_arch/
 !postgres/*.png
 !postgres/*.md
 
-# initialize scripts
+# Initialize scripts
 !clickhouse/clickhouse-init/
 
-# conf
+# Conf
 !postgres/config/
 
-# front-end
+# Front-end
 front-end/node_modules/
 front-end/package-lock.json
 
-# assembly
+# Assembly
 front-end/dist/
 
-# vite
+# Vite
 front-end/.vite/
 
-# cache + logs
+# Cache + Logs
 front-end/.eslintcache
 front-end/tsconfig.tsbuildinfo
 
@@ -96,3 +96,7 @@ front-end/.idea/
 # OS files
 front-end/.DS_Store
 front-end/Thumbs.db
+
+# Misc
+.qwen/
+

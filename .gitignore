@@ -96,7 +96,3 @@ front-end/.idea/
 # OS files
 front-end/.DS_Store
 front-end/Thumbs.db
-
-# Misc
-.qwen/
-

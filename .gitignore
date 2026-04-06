@@ -3,11 +3,13 @@ postgres/pgdata/
 postgres/pglogs/
 postgres/backups/
 postgres/wal/
+postgres/postgres_arch/_seeds/
 
 # ClickHouse
 clickhouse/clickhouse_data/
 clickhouse/clickhouse_logs/
 clickhouse/clickhouse_arch/
+clickhouse/clickhouse_arch/_seeds/
 
 # Superset
 supersetdb_data/

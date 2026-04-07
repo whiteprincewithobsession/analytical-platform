@@ -1,9 +1,6 @@
 name: airflow_platform
 
 services:
-  # ==========================================
-  # PostgreSQL для метаданных Airflow
-  # ==========================================
   postgres:
     image: postgres:16
     container_name: airflow_metadata
@@ -24,9 +21,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ==========================================
-  # Инициализация БД (одноразовый контейнер)
-  # ==========================================
   init:
     image: apache/airflow:2.9.3
     container_name: airflow_init
@@ -60,9 +54,6 @@ services:
       - airflow_network
     restart: "no"
 
-  # ==========================================
-  # Веб-сервер (UI)
-  # ==========================================
   webserver:
     image: apache/airflow:2.9.3
     container_name: airflow_webserver
@@ -106,9 +97,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ==========================================
-  # Планировщик (Scheduler)
-  # ==========================================
   scheduler:
     image: apache/airflow:2.9.3
     container_name: airflow_scheduler
@@ -142,9 +130,6 @@ services:
       - airflow_network
     restart: unless-stopped
 
-  # ==========================================
-  # Триггерер (для асинхронных задач)
-  # ==========================================
   triggerer:
     image: apache/airflow:2.9.3
     container_name: airflow_triggerer

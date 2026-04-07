@@ -36,8 +36,6 @@ services:
     networks:
       - retail_network
 
-  # docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' olap_retail
-  # 172.19.0.3
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     container_name: olap_retail
@@ -94,35 +92,6 @@ services:
     networks:
       - retail_network
 
-# docker exec -it retail_container psql -U admin -c 'CREATE DATABASE metabaseappdb;'
-  # metabase:
-  #   image: metabase/metabase:latest
-  #   container_name: metabase
-  #   hostname: metabase
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     MB_DB_TYPE: postgres
-  #     MB_DB_DBNAME: metabaseappdb
-  #     MB_DB_PORT: 5432
-  #     MB_DB_USER: admin
-  #     MB_DB_PASS: admin
-  #     MB_DB_HOST: postgres
-  #     JAVA_OPTS: "-Xmx2g"
-  #   volumes:
-  #     - ./metabase/plugins:/plugins
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 5
-  #   restart: unless-stopped
-  #   tty: true
-  #   stdin_open: true
-  #   networks:
-  #     - retail_network
-
-  # docker exec -it superset pip install clickhouse-connect>=0.6.8
   superset:
     image: apache/superset:4.0.1
     container_name: superset
@@ -148,7 +117,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-    
+
   supersetdb:
     image: postgres:16
     container_name: supersetdb
@@ -163,66 +132,6 @@ services:
     networks:
       - retail_network
     restart: unless-stopped
-
-  airflow-postgres:
-    image: postgres:16
-    container_name: airflow_metadata
-    environment:
-      POSTGRES_USER: ${AIRFLOW_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${AIRFLOW_POSTGRES_PASSWORD}
-      POSTGRES_DB: ${AIRFLOW_POSTGRES_DB}
-    volumes:
-      - ./airflow/postgres:/var/lib/postgresql/data
-    ports:
-      - "0.0.0.0:5433:5432"
-    networks:
-      - retail_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${AIRFLOW_POSTGRES_USER} -d ${AIRFLOW_POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  airflow-standalone:
-    image: apache/airflow:2.9.3
-    container_name: airflow_standalone
-    ports:
-      - "0.0.0.0:8080:8080"
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow-postgres:5432/${AIRFLOW_POSTGRES_DB}
-      AIRFLOW__CORE__FERNET_KEY: '${AIRFLOW_FERNET_KEY}'
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-      _AIRFLOW_DB_MIGRATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_WWW_USERNAME}
-      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_WWW_PASSWORD}
-      _PIP_ADDITIONAL_REQUIREMENTS: |
-        apache-airflow-providers-postgres==5.7.1
-        apache-airflow-providers-amazon==8.13.0
-        boto3==1.29.7
-        psycopg2-binary==2.9.9
-        pandas==2.1.3
-        pyarrow==14.0.1
-        s3fs==2023.12.0
-    volumes:
-      - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/logs:/opt/airflow/logs
-      - ./airflow/plugins:/opt/airflow/plugins
-    command: standalone 
-    depends_on:
-      airflow-postgres:
-        condition: service_healthy
-    networks:
-      - retail_network
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    restart: unless-stopped
-
 
 
 networks:

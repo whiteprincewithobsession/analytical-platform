@@ -1,7 +1,7 @@
 name: airflow_platform
 
 services:
-  postgres:
+  airflow-postgres:
     image: postgres:16
     container_name: airflow_metadata
     environment:
@@ -13,7 +13,7 @@ services:
     ports:
       - "0.0.0.0:5433:5432"
     networks:
-      - airflow_network
+      - retail_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${AIRFLOW_POSTGRES_USER} -d ${AIRFLOW_POSTGRES_DB}"]
       interval: 10s
@@ -21,12 +21,12 @@ services:
       retries: 5
     restart: unless-stopped
 
-  init:
+  airflow-init:
     image: apache/airflow:2.9.3
     container_name: airflow_init
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_POSTGRES_DB}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow-postgres:5432/${AIRFLOW_POSTGRES_DB}
       AIRFLOW__CORE__FERNET_KEY: '${AIRFLOW_FERNET_KEY}'
       _PIP_ADDITIONAL_REQUIREMENTS: >
         apache-airflow-providers-postgres==5.7.1
@@ -48,20 +48,20 @@ services:
       echo 'Airflow DB initialized and user created'
       "
     depends_on:
-      postgres:
+      airflow-postgres:
         condition: service_healthy
     networks:
-      - airflow_network
+      - retail_network
     restart: "no"
 
-  webserver:
+  airflow-webserver:
     image: apache/airflow:2.9.3
     container_name: airflow_webserver
     ports:
       - "0.0.0.0:8080:8080"
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_POSTGRES_DB}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow-postgres:5432/${AIRFLOW_POSTGRES_DB}
       AIRFLOW__CORE__FERNET_KEY: '${AIRFLOW_FERNET_KEY}'
       AIRFLOW__WEBSERVER__SECRET_KEY: '${SUPERSET_SECRET_KEY}'
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
@@ -86,10 +86,10 @@ services:
       airflow webserver
       "
     depends_on:
-      init:
+      airflow-init:
         condition: service_completed_successfully
     networks:
-      - airflow_network
+      - retail_network
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s
@@ -97,12 +97,12 @@ services:
       retries: 5
     restart: unless-stopped
 
-  scheduler:
+  airflow-scheduler:
     image: apache/airflow:2.9.3
     container_name: airflow_scheduler
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_POSTGRES_DB}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow-postgres:5432/${AIRFLOW_POSTGRES_DB}
       AIRFLOW__CORE__FERNET_KEY: '${AIRFLOW_FERNET_KEY}'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       _PIP_ADDITIONAL_REQUIREMENTS: >
@@ -124,18 +124,18 @@ services:
       airflow scheduler
       "
     depends_on:
-      init:
+      airflow-init:
         condition: service_completed_successfully
     networks:
-      - airflow_network
+      - retail_network
     restart: unless-stopped
 
-  triggerer:
+  airflow-triggerer:
     image: apache/airflow:2.9.3
     container_name: airflow_triggerer
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_POSTGRES_DB}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow-postgres:5432/${AIRFLOW_POSTGRES_DB}
       AIRFLOW__CORE__FERNET_KEY: '${AIRFLOW_FERNET_KEY}'
       AIRFLOW__CORE__DEFAULT_TASK_EXECUTION_TIMEOUT: 3600
       _PIP_ADDITIONAL_REQUIREMENTS: >
@@ -157,13 +157,14 @@ services:
       airflow triggerer
       "
     depends_on:
-      init:
+      airflow-init:
         condition: service_completed_successfully
     networks:
-      - airflow_network
+      - retail_network
     restart: unless-stopped
 
 
 networks:
-  airflow_network:
-    driver: bridge
+  retail_network:
+    external: true
+    name: analytical_platform_retail_network

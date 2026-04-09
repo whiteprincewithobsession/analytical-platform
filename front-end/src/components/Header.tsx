@@ -32,22 +32,22 @@ export function Header({
 
   return (
     <header className="h-16 bg-white dark:bg-gray-800 corporate:bg-slate-800 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-700 px-6 flex items-center justify-between">
-      {/* Empty left side for balance */}
+      {}
       <div className="flex-1" />
 
-      {/* Center - Global Search */}
+      {}
       <GlobalSearch
         onNavigate={onNavigate}
         onOpenSettings={onOpenSettings}
         onOpenHelp={onOpenHelp}
       />
 
-      {/* Right side */}
+      {}
       <div className="flex items-center gap-2">
-        {/* Theme Switcher */}
+        {}
         <ThemeSwitcher />
 
-        {/* Notifications */}
+        {}
         <div className="relative">
           <button
             onClick={handleOpenNotifications}
@@ -63,7 +63,7 @@ export function Header({
           <NotificationPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
         </div>
 
-        {/* Profile */}
+        {}
         <ProfileMenu
           onOpenSettings={onOpenSettings}
           onOpenHelp={onOpenHelp}

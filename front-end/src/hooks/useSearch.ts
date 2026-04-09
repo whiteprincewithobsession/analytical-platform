@@ -9,28 +9,28 @@ interface UseSearchOptions {
   limit?: number;
 }
 
-// Умная функция нечеткого поиска
+
 export function fuzzyMatch(query: string, text: string): { score: number; positions: number[] } {
   const queryLower = query.toLowerCase();
   const textLower = text.toLowerCase();
 
-  // Точное совпадение
+
   if (textLower === queryLower) {
     return { score: 100, positions: Array.from({ length: queryLower.length }, (_, i) => i) };
   }
 
-  // Совпадение начала
+
   if (textLower.startsWith(queryLower)) {
     return { score: 90, positions: Array.from({ length: queryLower.length }, (_, i) => i) };
   }
 
-  // Поиск подстроки — возвращаем ВСЕ позиции совпавшей подстроки
+
   const index = textLower.indexOf(queryLower);
   if (index !== -1) {
     return { score: 80, positions: Array.from({ length: queryLower.length }, (_, i) => index + i) };
   }
 
-  // Нечеткое совпадение — возвращаем все позиции совпавших символов
+
   let queryIndex = 0;
   const positions: number[] = [];
   let consecutiveMatches = 0;
@@ -57,7 +57,7 @@ export function fuzzyMatch(query: string, text: string): { score: number; positi
   return { score: 0, positions: [] };
 }
 
-// Подсветка совпадений
+
 export function highlightText(text: string, query: string, positions: number[]): string[] {
   if (!query || positions.length === 0) {
     return [text];
@@ -106,12 +106,12 @@ export function useSearch({ query, items, filter = 'all', language = 'ru', limit
     const scoredResults: (SearchResult & { score: number; positions: number[] })[] = [];
 
     items.forEach(item => {
-      // Фильтрация по типу
+
       if (filter !== 'all' && item.type !== filter) {
         return;
       }
 
-      // Получаем текст на текущем языке
+
       const title = language === 'en' && (item as any).titleEn ? (item as any).titleEn : item.title;
       const description = language === 'en' && (item as any).descriptionEn ? (item as any).descriptionEn : item.description;
       
@@ -121,20 +121,20 @@ export function useSearch({ query, items, filter = 'all', language = 'ru', limit
       let allPositions: number[] = [];
 
       searchTerms.forEach(term => {
-        // Поиск по заголовку (наивысший вес)
+
         const titleMatch = fuzzyMatch(term, title);
         if (titleMatch.score > 0) {
           totalScore += titleMatch.score * 2;
           allPositions = [...allPositions, ...titleMatch.positions];
         }
 
-        // Поиск по описанию
+
         const descMatch = fuzzyMatch(term, description);
         if (descMatch.score > 0) {
           totalScore += descMatch.score;
         }
 
-        // Поиск по ключевым словам
+
         item.keywords.forEach(keyword => {
           const keywordMatch = fuzzyMatch(term, keyword);
           if (keywordMatch.score > 0) {
@@ -143,7 +143,7 @@ export function useSearch({ query, items, filter = 'all', language = 'ru', limit
         });
       });
 
-      // Бонус за приоритет
+
       const priorityBonus = (item.priority || 5) * 2;
       totalScore += priorityBonus;
 
@@ -156,13 +156,13 @@ export function useSearch({ query, items, filter = 'all', language = 'ru', limit
       }
     });
 
-    // Сортировка по релевантности
+
     scoredResults.sort((a, b) => b.score - a.score);
 
     return scoredResults.slice(0, limit);
   }, [query, filter, language, items, limit]);
 
-  // Группировка по типу
+
   const groupedResults = useMemo(() => {
     const groups: Record<string, typeof results> = {};
     results.forEach(result => {

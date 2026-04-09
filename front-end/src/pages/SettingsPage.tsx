@@ -28,7 +28,7 @@ const settingsSections: SettingsSectionProps[] = [
   { id: 'roles', labelKey: 'settings.roles', descriptionKey: 'settings.rolesDesc', icon: <Users className="w-5 h-5" /> },
 ];
 
-// Компонент кнопки меню с тултипом
+
 const MenuButton: React.FC<{
   section: SettingsSectionProps;
   isActive: boolean;
@@ -73,7 +73,7 @@ const MenuButton: React.FC<{
   );
 };
 
-// Компонент Toggle с подсказкой
+
 const Toggle: React.FC<{
   enabled: boolean;
   onChange: (value: boolean) => void;
@@ -122,7 +122,7 @@ const Toggle: React.FC<{
   return content;
 };
 
-// Компонент секции локализации
+
 const LocalizationSection: React.FC = () => {
   const {
     language,
@@ -147,7 +147,7 @@ const LocalizationSection: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Информационная панель */}
+      {}
       <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
         <div className="flex items-start gap-3">
           <Languages className="w-6 h-6 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -165,7 +165,7 @@ const LocalizationSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Язык интерфейса */}
+      {}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
           <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex-shrink-0">
@@ -190,7 +190,7 @@ const LocalizationSection: React.FC = () => {
                       : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md bg-white dark:bg-gray-800'
                   }`}
                 >
-                  {/* Галочка выбора */}
+                  {}
                   {isSelected && (
                     <div className="absolute top-3 right-3 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-md">
                       <Check className="w-4 h-4 text-white" />
@@ -198,10 +198,10 @@ const LocalizationSection: React.FC = () => {
                   )}
 
                   <div className="flex items-center gap-4">
-                    {/* Флаг */}
+                    {}
                     <span className="text-4xl flex-shrink-0">{lang.flag}</span>
 
-                    {/* Информация */}
+                    {}
                     <div className="text-left">
                       <div className="font-bold text-gray-900 dark:text-white text-lg">
                         {lang.name}
@@ -218,7 +218,7 @@ const LocalizationSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Формат даты */}
+      {}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
           <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg flex-shrink-0">
@@ -249,14 +249,14 @@ const LocalizationSection: React.FC = () => {
                       : 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600 hover:shadow-md bg-white dark:bg-gray-800'
                   }`}
                 >
-                  {/* Галочка выбора */}
+                  {}
                   {isSelected && (
                     <div className="absolute top-3 right-3 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center shadow-md">
                       <Check className="w-4 h-4 text-white" />
                     </div>
                   )}
 
-                  {/* Формат */}
+                  {}
                   <div className="mb-3">
                     <span className={`inline-block px-2 py-1 rounded text-xs font-bold font-mono ${
                       isSelected
@@ -267,7 +267,7 @@ const LocalizationSection: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Название и регион */}
+                  {}
                   <div className="mb-3">
                     <div className="font-semibold text-gray-900 dark:text-white text-sm">
                       {details[fmt.format].name}
@@ -277,7 +277,7 @@ const LocalizationSection: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Пример даты */}
+                  {}
                   <div className={`p-2 rounded-lg text-center ${
                     isSelected
                       ? 'bg-green-100 dark:bg-green-800/30'
@@ -305,7 +305,7 @@ const LocalizationSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Валюта */}
+      {}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
           <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex-shrink-0">
@@ -330,7 +330,7 @@ const LocalizationSection: React.FC = () => {
                       : 'border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600 hover:shadow-md bg-white dark:bg-gray-800'
                   }`}
                 >
-                  {/* Галочка выбора */}
+                  {}
                   {isSelected && (
                     <div className="absolute top-3 right-3 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center shadow-md">
                       <Check className="w-4 h-4 text-white" />
@@ -338,7 +338,7 @@ const LocalizationSection: React.FC = () => {
                   )}
                   
                   <div className="flex items-center gap-3">
-                    {/* Символ валюты */}
+                    {}
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold flex-shrink-0 ${
                       isSelected 
                         ? 'bg-amber-100 dark:bg-amber-800/30 text-amber-700 dark:text-amber-300' 
@@ -347,7 +347,7 @@ const LocalizationSection: React.FC = () => {
                       {curr.symbol}
                     </div>
                     
-                    {/* Информация */}
+                    {}
                     <div className="text-left min-w-0">
                       <div className="font-bold text-gray-900 dark:text-white">
                         {curr.code}
@@ -371,7 +371,7 @@ const LocalizationSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Первый день недели */}
+      {}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
           <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex-shrink-0">
@@ -384,7 +384,7 @@ const LocalizationSection: React.FC = () => {
         </div>
         <div className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Понедельник */}
+            {}
             {(() => {
               const isSelected = firstDayOfWeek === 'monday';
               return (
@@ -431,7 +431,7 @@ const LocalizationSection: React.FC = () => {
               );
             })()}
 
-            {/* Воскресенье */}
+            {}
             {(() => {
               const isSelected = firstDayOfWeek === 'sunday';
               return (
@@ -504,7 +504,7 @@ const LocalizationSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Кнопка сохранения */}
+      {}
       <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <Info className="w-4 h-4 flex-shrink-0" />
@@ -524,7 +524,7 @@ const LocalizationSection: React.FC = () => {
   );
 };
 
-// Компонент карточки интеграции
+
 const IntegrationCard: React.FC<{
   name: string;
   description: string;
@@ -570,7 +570,7 @@ const IntegrationCard: React.FC<{
   );
 };
 
-// Компонент карточки роли
+
 const RoleCard: React.FC<{
   name: string;
   description: string;
@@ -641,7 +641,7 @@ const RoleCard: React.FC<{
   );
 };
 
-// Компонент API ключа
+
 const ApiKeyRow: React.FC<{
   name: string;
   keyValue: string;
@@ -1127,7 +1127,7 @@ const SettingsPage: React.FC = () => {
       </div>
 
       <div className="flex gap-6">
-        {/* Sidebar - сделаем шире и адаптивнее */}
+        {}
         <div className="w-56 flex-shrink-0">
           <nav className="space-y-1 sticky top-6">
             {settingsSections.map((section) => (
@@ -1142,7 +1142,7 @@ const SettingsPage: React.FC = () => {
           </nav>
         </div>
 
-        {/* Content */}
+        {}
         <div className="flex-1 min-w-0">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -1161,7 +1161,7 @@ const SettingsPage: React.FC = () => {
 
             {renderSection()}
 
-            {/* Save button */}
+            {}
             <div className="flex items-center justify-end gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
               <Tooltip content="Сбросить изменения" position="top">
                 <button className="flex items-center gap-2 px-4 py-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">

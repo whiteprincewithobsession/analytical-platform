@@ -1,4 +1,4 @@
-// Экспорты хуков
+
 export { useLocalStorage } from './useLocalStorage';
 export { useSearch, fuzzyMatch, highlightText } from './useSearch';
 export { useSettings } from './useSettings';

@@ -19,7 +19,7 @@ export const SupersetDashboard: React.FC<SupersetDashboardProps> = ({
   const [authDone, setAuthDone] = useState(false);
 
   useEffect(() => {
-    // Wait 2 seconds for auto-login iframe to set the session cookie
+
     const timer = setTimeout(() => setAuthDone(true), 2000);
     return () => clearTimeout(timer);
   }, []);
@@ -42,7 +42,7 @@ export const SupersetDashboard: React.FC<SupersetDashboardProps> = ({
       )}
 
       <div className="relative flex-1 w-full h-full">
-        {/* Hidden auto-login iframe */}
+        {}
         <iframe
           src="/superset-login.html"
           width="0"

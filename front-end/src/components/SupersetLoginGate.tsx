@@ -1,17 +1,32 @@
 import React, { useState } from 'react';
-import { BarChart3, Eye, EyeOff } from 'lucide-react';
+import { BarChart3, Eye, EyeOff, Shield, TrendingUp, Users, Eye as EyeIcon } from 'lucide-react';
+
+const ROLE_MAP: Record<string, { id: string; name: string; nameEn: string; icon: any; color: string; desc: string }> = {
+  admin: { id: 'admin', name: 'Admin', nameEn: 'Admin', icon: Shield, color: 'from-red-500 to-rose-600', desc: 'Full access' },
+  analyst: { id: 'analyst', name: 'Analyst', nameEn: 'Analyst', icon: TrendingUp, color: 'from-blue-500 to-cyan-600', desc: 'Analytics & reports' },
+  manager: { id: 'manager', name: 'Manager', nameEn: 'Manager', icon: Users, color: 'from-emerald-500 to-teal-600', desc: 'Product & order management' },
+  spectator: { id: 'spectator', name: 'Spectator', nameEn: 'Spectator', icon: EyeIcon, color: 'from-gray-500 to-gray-600', desc: 'Read-only access' },
+};
 
 interface SupersetLoginGateProps {
   children: React.ReactNode;
   onLoginSuccess: () => void;
 }
 
-export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ children, onLoginSuccess }) => {
+export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const detectRole = (roles: string[], uname: string): string => {
+    const rl = roles.map(r => r.toLowerCase());
+    if (rl.includes('admin') || uname.toLowerCase() === 'admin') return 'admin';
+    if (rl.includes('alpha') || rl.includes('sql_lab') || rl.includes('bi developer') || rl.includes('data analyst')) return 'analyst';
+    if (rl.includes('gamma') || rl.includes('sql developer')) return 'manager';
+    return 'spectator';
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,19 +34,17 @@ export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ children, 
     setError('');
 
     try {
-      // Step 1: Get CSRF token
       const loginPageRes = await fetch('/login/', { credentials: 'include' });
       const loginHtml = await loginPageRes.text();
       const csrfMatch = loginHtml.match(/name="csrf_token"\s+value="([^"]+)"/);
       const csrfToken = csrfMatch ? csrfMatch[1] : '';
 
-      // Step 2: Login
       const formData = new URLSearchParams();
       formData.append('username', username);
       formData.append('password', password);
       formData.append('csrf_token', csrfToken);
 
-      const res = await fetch('/login/', {
+      await fetch('/login/', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -39,15 +52,44 @@ export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ children, 
         redirect: 'manual',
       });
 
-      // Step 3: Verify login worked
       const meRes = await fetch('/api/v1/me/', { credentials: 'include' });
       if (meRes.ok) {
+        const meData = await meRes.json();
+        const supersetUser = meData.result || {};
+
+        // КРИТИЧЕСКАЯ ПРОВЕРКА БЕЗОПАСНОСТИ:
+        // Если пользователь ввел 'random', а сервер вернул 'admin' (старая сессия),
+        // значит логин не удался. Мы должны запретить вход.
+        if (supersetUser.username && supersetUser.username.toLowerCase() !== username.toLowerCase()) {
+          setError('Неверный логин или пароль');
+          // Принудительно убиваем сессию, чтобы не смущать пользователя
+          await fetch('/logout/', { credentials: 'include' });
+          return;
+        }
+
+        // Validation: user_id must exist
+        if (!supersetUser.user_id && !supersetUser.username) {
+          setError('Неверный логин или пароль');
+          return;
+        }
+
+        const roles = (supersetUser.roles || []).map((r: any) => r.name);
+        const appRole = detectRole(roles, supersetUser.username || '');
+        const roleInfo = ROLE_MAP[appRole];
+
+        localStorage.setItem('admin-user', JSON.stringify({
+          id: String(supersetUser.user_id || 1),
+          name: `${supersetUser.first_name || ''} ${supersetUser.last_name || ''}`.trim() || supersetUser.username || 'User',
+          email: supersetUser.email || '',
+          role: roleInfo.id,
+        }));
+
         sessionStorage.setItem('superset_authenticated', 'true');
         onLoginSuccess();
       } else {
         setError('Неверный логин или пароль');
       }
-    } catch (err) {
+    } catch {
       setError('Ошибка подключения к серверу');
     } finally {
       setIsLoading(false);
@@ -126,7 +168,7 @@ export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ children, 
 
           <div className="mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
             <p className="text-xs text-amber-200">
-              💡 Используйте учётные данные Apache Superset. Доступ зависит от вашей роли.
+              💡 Роль назначается автоматически на основе ваших прав в Superset.
             </p>
           </div>
         </div>

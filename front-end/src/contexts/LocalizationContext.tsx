@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import ruTranslations from '../locales/ru.json';
 import enTranslations from '../locales/en.json';
 
-// Типы
+
 export type Language = 'ru' | 'en';
 export type DateFormat = 'DD.MM.YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
 export type CurrencyCode = 'RUB' | 'USD' | 'EUR';
@@ -32,24 +32,24 @@ interface DateFormatConfig {
 }
 
 interface LocalizationContextType {
-  // Текущие настройки
+
   language: Language;
   dateFormat: DateFormat;
   currency: CurrencyCode;
   firstDayOfWeek: FirstDayOfWeek;
   
-  // Конфигурации
+
   languages: LanguageConfig[];
   dateFormats: DateFormatConfig[];
   currencies: CurrencyConfig[];
   
-  // Сеттеры
+
   setLanguage: (lang: Language) => void;
   setDateFormat: (format: DateFormat) => void;
   setCurrency: (currency: CurrencyCode) => void;
   setFirstDayOfWeek: (day: FirstDayOfWeek) => void;
   
-  // Хелперы
+
   t: (key: string, params?: Record<string, string | number>) => string;
   formatDate: (date: Date | string) => string;
   formatCurrency: (amount: number) => string;
@@ -57,7 +57,7 @@ interface LocalizationContextType {
   getWeekDays: () => string[];
 }
 
-// Конфигурации
+
 const languageConfigs: LanguageConfig[] = [
   { code: 'ru', name: 'Русский', flag: '🇷🇺' },
   { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -102,7 +102,7 @@ const currencyConfigs: CurrencyConfig[] = [
   },
 ];
 
-// Словари переводов
+
 const translations: Record<Language, Record<string, any>> = {
   ru: ruTranslations,
   en: enTranslations,
@@ -131,7 +131,7 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return (saved as FirstDayOfWeek) || 'monday';
   });
 
-  // Сохранение в localStorage
+
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('app_language', lang);
@@ -153,12 +153,12 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     localStorage.setItem('app_firstDayOfWeek', day);
   }, []);
 
-  // Установка языка документа
+
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
 
-  // Функция перевода с поддержкой вложенных ключей и параметров
+
   const t = useCallback((key: string, params?: Record<string, string | number>): string => {
     const keys = key.split('.');
     let value: any = translations[language];
@@ -167,13 +167,13 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (value && typeof value === 'object' && k in value) {
         value = value[k];
       } else {
-        // Fallback на английский
+
         value = translations['en'];
         for (const fallbackKey of keys) {
           if (value && typeof value === 'object' && fallbackKey in value) {
             value = value[fallbackKey];
           } else {
-            return key; // Возвращаем ключ, если перевод не найден
+            return key;
           }
         }
         break;
@@ -184,7 +184,7 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return key;
     }
     
-    // Подстановка параметров
+
     if (params) {
       return value.replace(/\{(\w+)\}/g, (_, paramKey) => {
         return params[paramKey]?.toString() || `{${paramKey}}`;
@@ -194,7 +194,7 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return value;
   }, [language]);
 
-  // Форматирование даты
+
   const formatDate = useCallback((date: Date | string): string => {
     const d = typeof date === 'string' ? new Date(date) : date;
     const day = d.getDate().toString().padStart(2, '0');
@@ -213,7 +213,7 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [dateFormat]);
 
-  // Форматирование валюты
+
   const formatCurrency = useCallback((amount: number): string => {
     const config = currencyConfigs.find(c => c.code === currency) || currencyConfigs[0];
     
@@ -229,13 +229,13 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [currency]);
 
-  // Форматирование числа
+
   const formatNumber = useCallback((num: number): string => {
     const config = currencyConfigs.find(c => c.code === currency) || currencyConfigs[0];
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, config.thousandsSeparator);
   }, [currency]);
 
-  // Получение дней недели в правильном порядке
+
   const getWeekDays = useCallback((): string[] => {
     const days = [
       t('days.mon'),

@@ -28,7 +28,7 @@ export function SystemAlerts() {
   ]);
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Симуляция изменения нагрузки
+
   useEffect(() => {
     const interval = setInterval(() => {
       setAlerts(prev =>
@@ -56,7 +56,7 @@ export function SystemAlerts() {
             : 'bg-amber-50 dark:bg-amber-900/20 corporate:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
         }`}
       >
-        {/* Header */}
+        {}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full flex items-center justify-between p-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
@@ -84,7 +84,7 @@ export function SystemAlerts() {
           </span>
         </button>
 
-        {/* Alerts List */}
+        {}
         {isExpanded && (
           <div className="border-t border-amber-200 dark:border-amber-800/50">
             {alerts.map(alert => {

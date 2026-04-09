@@ -27,7 +27,7 @@ export const DashboardPlaceholder: React.FC<DashboardPlaceholderProps> = ({
         </div>
       )}
 
-      {/* Placeholder Content */}
+      {}
       <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 flex flex-col items-center justify-center text-center">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-4">
           <Database className="w-10 h-10 text-white" />

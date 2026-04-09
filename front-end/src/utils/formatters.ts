@@ -1,9 +1,9 @@
-// Форматирование чисел
+
 export const formatNumber = (num: number, locale = 'ru-RU'): string => {
   return new Intl.NumberFormat(locale).format(num);
 };
 
-// Форматирование валюты
+
 export const formatCurrency = (
   amount: number,
   currency: string = 'RUB',
@@ -17,7 +17,7 @@ export const formatCurrency = (
   }).format(amount);
 };
 
-// Форматирование даты
+
 export const formatDate = (
   date: Date | string,
   format: string = 'DD.MM.YYYY',
@@ -49,13 +49,13 @@ export const formatDate = (
   }
 };
 
-// Форматирование времени
+
 export const formatTime = (date: Date | string, locale: string = 'ru-RU'): string => {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 };
 
-// Форматирование даты и времени
+
 export const formatDateTime = (
   date: Date | string,
   locale: string = 'ru-RU'
@@ -63,7 +63,7 @@ export const formatDateTime = (
   return `${formatDate(date, 'DD.MM.YYYY', locale)} ${formatTime(date, locale)}`;
 };
 
-// Относительное время (например, "5 минут назад")
+
 export const formatRelativeTime = (date: Date | string, locale: string = 'ru-RU'): string => {
   const d = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
@@ -91,7 +91,7 @@ export const formatRelativeTime = (date: Date | string, locale: string = 'ru-RU'
   }
 };
 
-// Форматирование размера файла
+
 export const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 B';
   
@@ -102,12 +102,12 @@ export const formatFileSize = (bytes: number): string => {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 };
 
-// Форматирование процента
+
 export const formatPercent = (value: number, decimals: number = 1): string => {
   return `${value.toFixed(decimals)}%`;
 };
 
-// Форматирование телефона
+
 export const formatPhone = (phone: string): string => {
   const cleaned = phone.replace(/\D/g, '');
   const match = cleaned.match(/^(\d{1,3})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})$/);

@@ -1,4 +1,4 @@
-// Общие типы для приложения
+
 
 export interface User {
   id: number;

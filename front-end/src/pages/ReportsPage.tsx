@@ -52,7 +52,7 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Отчёты</h1>
@@ -71,7 +71,7 @@ export function ReportsPage() {
         </PermissionGate>
       </div>
 
-      {/* Filters */}
+      {}
       <div className="flex flex-wrap items-center gap-2">
         {reportTypes.map(type => (
           <button
@@ -88,7 +88,7 @@ export function ReportsPage() {
         ))}
       </div>
 
-      {/* Reports List */}
+      {}
       <div className="bg-white dark:bg-gray-800 corporate:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -183,7 +183,7 @@ export function ReportsPage() {
         </div>
       </div>
 
-      {/* Create Report Modal */}
+      {}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">

@@ -1,6 +1,6 @@
 import { UserRole } from '../contexts/AuthContext';
 
-// Определяем все возможные разрешения
+
 export type Permission =
   | 'view_dashboard'
   | 'view_dashboards'
@@ -22,7 +22,7 @@ export type Permission =
   | 'view_system_alerts'
   | 'manage_system';
 
-// Матрица разрешений для каждой роли
+
 export const rolePermissions: Record<UserRole, Permission[]> = {
   admin: [
     'view_dashboard',
@@ -66,7 +66,7 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'edit_orders',
     'manage_promotions',
   ],
-  viewer: [
+  spectator: [
     'view_dashboard',
     'view_dashboards',
     'view_sales',
@@ -74,25 +74,25 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
   ],
 };
 
-// Проверка разрешения
+
 export function hasPermission(role: UserRole | undefined, permission: Permission): boolean {
   if (!role) return false;
   return rolePermissions[role].includes(permission);
 }
 
-// Проверка нескольких разрешений (все)
+
 export function hasAllPermissions(role: UserRole | undefined, permissions: Permission[]): boolean {
   if (!role) return false;
   return permissions.every(p => rolePermissions[role].includes(p));
 }
 
-// Проверка нескольких разрешений (хотя бы одно)
+
 export function hasAnyPermission(role: UserRole | undefined, permissions: Permission[]): boolean {
   if (!role) return false;
   return permissions.some(p => rolePermissions[role].includes(p));
 }
 
-// Описание ролей
+
 export const roleDescriptions: Record<UserRole, {
   title: string;
   titleEn: string;
@@ -153,9 +153,9 @@ export const roleDescriptions: Record<UserRole, {
       'Нет доступа к настройкам',
     ],
   },
-  viewer: {
-    title: 'Наблюдатель',
-    titleEn: 'Viewer',
+  spectator: {
+    title: 'Spectator',
+    titleEn: 'Spectator',
     description: 'Только просмотр основной информации',
     capabilities: [
       'Просмотр обзора',
@@ -173,7 +173,7 @@ export const roleDescriptions: Record<UserRole, {
   },
 };
 
-// Страницы и требуемые разрешения
+
 export const pagePermissions: Record<string, Permission[]> = {
   overview: ['view_dashboard'],
   dashboards: ['view_dashboards'],

@@ -65,7 +65,7 @@ export function ProfileMenu({ onOpenSettings, onOpenHelp, onOpenNotifications }:
 
   const handleActivityClick = () => {
     setIsOpen(false);
-    onOpenSettings('security'); // Activity пока открывает security, можно добавить отдельную вкладку
+    onOpenSettings('security');
   };
 
   return (
@@ -89,7 +89,7 @@ export function ProfileMenu({ onOpenSettings, onOpenHelp, onOpenNotifications }:
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 corporate:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 corporate:border-slate-600 z-50 overflow-hidden">
-            {/* User Info */}
+            {}
             <div className="p-4 bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700 corporate:from-blue-600 corporate:to-blue-800">
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-white font-bold text-xl">
@@ -112,7 +112,7 @@ export function ProfileMenu({ onOpenSettings, onOpenHelp, onOpenNotifications }:
               </div>
             </div>
 
-            {/* Quick Stats */}
+            {}
             <div className="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 corporate:divide-slate-600 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-600">
               <div className="p-3 text-center">
                 <div className="text-lg font-bold text-gray-900 dark:text-white corporate:text-white">
@@ -134,7 +134,7 @@ export function ProfileMenu({ onOpenSettings, onOpenHelp, onOpenNotifications }:
               </div>
             </div>
 
-            {/* Menu Items */}
+            {}
             <div className="p-2">
               <MenuItem
                 icon={User}

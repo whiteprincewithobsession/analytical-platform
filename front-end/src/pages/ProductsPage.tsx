@@ -59,7 +59,7 @@ export function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Товары</h1>
@@ -83,7 +83,7 @@ export function ProductsPage() {
         </PermissionGate>
       </div>
 
-      {/* Viewer notice */}
+      {}
       {isViewer && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
           <div className="flex items-center gap-3">
@@ -95,10 +95,10 @@ export function ProductsPage() {
         </div>
       )}
 
-      {/* Filters */}
+      {}
       <div className="bg-white dark:bg-gray-800 corporate:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex flex-wrap items-center gap-4">
-          {/* Search */}
+          {}
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -110,7 +110,7 @@ export function ProductsPage() {
             />
           </div>
 
-          {/* Category Filter */}
+          {}
           <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-gray-400" />
             <select
@@ -124,7 +124,7 @@ export function ProductsPage() {
             </select>
           </div>
 
-          {/* View Mode */}
+          {}
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
             <button
               onClick={() => setViewMode('grid')}
@@ -150,7 +150,7 @@ export function ProductsPage() {
         </div>
       </div>
 
-      {/* Products Grid/List */}
+      {}
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredProducts.map(product => (

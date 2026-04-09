@@ -30,7 +30,7 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
-        {/* Header */}
+        {}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-500/30">
             <span className="text-white font-bold text-3xl">M</span>
@@ -39,7 +39,7 @@ export function LoginPage() {
           <p className="text-indigo-200 mt-2">{t('common.selectRoleToLogin')}</p>
         </div>
 
-        {/* Role Cards */}
+        {}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {roles.map(role => {
             const Icon = role.icon;
@@ -70,7 +70,7 @@ export function LoginPage() {
           })}
         </div>
 
-        {/* Role Details Toggle */}
+        {}
         <button
           onClick={() => setShowDetails(!showDetails)}
           className="w-full flex items-center justify-center gap-2 py-3 text-indigo-300 hover:text-white transition-colors mb-4"
@@ -79,7 +79,7 @@ export function LoginPage() {
           <span>{showDetails ? t('common.hideRoleDetails') : t('common.showRoleDetails')}</span>
         </button>
 
-        {/* Role Details */}
+        {}
         {showDetails && (
           <div className="bg-white/10 rounded-xl p-6 mb-6 backdrop-blur-sm">
             <h3 className="text-lg font-semibold text-white mb-4">
@@ -87,7 +87,7 @@ export function LoginPage() {
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Capabilities */}
+              {}
               <div>
                 <h4 className="text-sm font-medium text-emerald-400 uppercase tracking-wide mb-3">
                   ✓ {t('common.available')}
@@ -102,7 +102,7 @@ export function LoginPage() {
                 </ul>
               </div>
 
-              {/* Restrictions */}
+              {}
               <div>
                 <h4 className="text-sm font-medium text-red-400 uppercase tracking-wide mb-3">
                   ✗ {t('common.restricted')}
@@ -124,7 +124,7 @@ export function LoginPage() {
           </div>
         )}
 
-        {/* Comparison Table */}
+        {}
         <div className="bg-white/10 rounded-xl overflow-hidden mb-6 backdrop-blur-sm">
           <table className="w-full">
             <thead>
@@ -169,7 +169,7 @@ export function LoginPage() {
           </table>
         </div>
 
-        {/* Login Button */}
+        {}
         <button
           onClick={() => login(selectedRole)}
           className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-lg hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50"

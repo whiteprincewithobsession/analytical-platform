@@ -20,7 +20,7 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
   const [activeTabState, setActiveTabState] = useState<Tab>('profile');
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
 
-  // Синхронизация внешней вкладки с внутренней
+
   useEffect(() => {
     if (activeTab) {
       setActiveTabState(activeTab as Tab);
@@ -66,7 +66,7 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
     setTimeout(() => setCopiedKeyId(null), 2000);
   };
 
-  // Активность пользователя (моковые данные)
+
   const activityLog = [
     { id: 1, action: { ru: 'Вход в систему', en: 'Login' }, time: '2024-03-31 14:30', ip: '192.168.1.100' },
     { id: 2, action: { ru: 'Изменение настроек', en: 'Settings changed' }, time: '2024-03-31 13:15', ip: '192.168.1.100' },
@@ -80,7 +80,7 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-3xl bg-white dark:bg-gray-800 corporate:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-600">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white corporate:text-white">
             {t('profile.settings')}
@@ -94,7 +94,7 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
         </div>
 
         <div className="flex min-h-[500px]">
-          {/* Sidebar */}
+          {}
           <div className="w-48 border-r border-gray-200 dark:border-gray-700 corporate:border-slate-600 p-3">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button
@@ -112,7 +112,7 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
             ))}
           </div>
 
-          {/* Content */}
+          {}
           <div className="flex-1 p-6 overflow-y-auto">
             {activeTabState === 'profile' && (
               <div className="space-y-6">
@@ -469,7 +469,7 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
                   </div>
                 </div>
 
-                {/* Preview */}
+                {}
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                   <h4 className="font-medium text-gray-900 dark:text-white mb-3">
                     {language === 'ru' ? 'Предпросмотр' : 'Preview'}
@@ -506,7 +506,7 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
           </div>
         </div>
 
-        {/* Footer */}
+        {}
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 corporate:border-slate-600">
           <button
             onClick={onClose}

@@ -54,7 +54,7 @@ export function Sidebar({ activePage, onPageChange, onOpenHelp }: SidebarProps) 
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
-      {/* Logo */}
+      {}
       <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-700">
         {!isCollapsed && (
           <div className="flex items-center gap-3">
@@ -75,7 +75,7 @@ export function Sidebar({ activePage, onPageChange, onOpenHelp }: SidebarProps) 
         </button>
       </div>
 
-      {/* Role Badge */}
+      {}
       {!isCollapsed && roleInfo && (
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-700">
           <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
@@ -92,7 +92,7 @@ export function Sidebar({ activePage, onPageChange, onOpenHelp }: SidebarProps) 
         </div>
       )}
 
-      {/* Navigation */}
+      {}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map(item => {
           const Icon = item.icon;
@@ -101,7 +101,7 @@ export function Sidebar({ activePage, onPageChange, onOpenHelp }: SidebarProps) 
           const label = t(item.labelKey);
 
           if (!hasAccess) {
-            // Показываем заблокированные пункты меню
+
             return (
               <div
                 key={item.id}
@@ -139,7 +139,7 @@ export function Sidebar({ activePage, onPageChange, onOpenHelp }: SidebarProps) 
         })}
       </nav>
 
-      {/* Role Info (collapsed tooltip alternative) */}
+      {}
       {!isCollapsed && roleInfo && (
         <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 corporate:border-slate-700">
           <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -148,7 +148,7 @@ export function Sidebar({ activePage, onPageChange, onOpenHelp }: SidebarProps) 
         </div>
       )}
 
-      {/* Help Section */}
+      {}
       <div className="p-3 border-t border-gray-200 dark:border-gray-700 corporate:border-slate-700">
         <button
           onClick={onOpenHelp}

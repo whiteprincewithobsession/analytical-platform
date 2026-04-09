@@ -1,6 +1,6 @@
 import type { User, Product, Order, Report, Dashboard, Notification, Integration, ApiKey, Role } from '../types';
 
-// Пользователи
+
 export const users: User[] = [
   { id: 1, name: 'Иванов Иван', nameEn: 'Ivanov Ivan', email: 'admin@company.ru', role: 'admin', createdAt: '2024-01-15', lastLogin: '2024-03-31 14:30' },
   { id: 2, name: 'Петрова Анна', nameEn: 'Petrova Anna', email: 'petrova@company.ru', role: 'manager', createdAt: '2024-01-20', lastLogin: '2024-03-31 12:15' },
@@ -8,7 +8,7 @@ export const users: User[] = [
   { id: 4, name: 'Козлова Елена', nameEn: 'Kozlova Elena', email: 'kozlova@company.ru', role: 'viewer', createdAt: '2024-02-15', lastLogin: '2024-03-30 16:20' },
 ];
 
-// Товары
+
 export const products: Product[] = [
   { id: 1, name: 'iPhone 15 Pro', nameEn: 'iPhone 15 Pro', category: 'Смартфоны', price: 149990, stock: 45, status: 'active', image: '📱', description: 'Флагманский смартфон Apple', descriptionEn: 'Apple flagship smartphone' },
   { id: 2, name: 'MacBook Pro 14"', nameEn: 'MacBook Pro 14"', category: 'Ноутбуки', price: 299990, stock: 12, status: 'active', image: '💻', description: 'Профессиональный ноутбук', descriptionEn: 'Professional laptop' },
@@ -20,7 +20,7 @@ export const products: Product[] = [
   { id: 8, name: 'Dell XPS 15', nameEn: 'Dell XPS 15', category: 'Ноутбуки', price: 189990, stock: 8, status: 'active', image: '💻', description: 'Ультратонкий ноутбук', descriptionEn: 'Ultraportable laptop' },
 ];
 
-// Заказы
+
 export const orders: Order[] = [
   { id: 1, orderNumber: '#12345', customerName: 'Иванов И.', customerNameEn: 'Ivanov I.', amount: 15000, status: 'delivered', createdAt: '2024-03-28', items: 2 },
   { id: 2, orderNumber: '#12344', customerName: 'Петрова А.', customerNameEn: 'Petrova A.', amount: 8500, status: 'processing', createdAt: '2024-03-29', items: 1 },
@@ -29,7 +29,7 @@ export const orders: Order[] = [
   { id: 5, orderNumber: '#12341', customerName: 'Смирнов П.', customerNameEn: 'Smirnov P.', amount: 12000, status: 'cancelled', createdAt: '2024-03-26', items: 1 },
 ];
 
-// Отчёты
+
 export const reports: Report[] = [
   { id: 1, name: 'Отчёт по продажам - Январь 2024', nameEn: 'Sales Report - January 2024', type: 'Продажи', typeEn: 'Sales', status: 'completed', createdAt: '2 часа назад', size: '2.4 MB', author: 'Администратор', authorEn: 'Administrator' },
   { id: 2, name: 'Аналитика пользователей Q4', nameEn: 'User Analytics Q4', type: 'Пользователи', typeEn: 'Users', status: 'completed', createdAt: '5 часов назад', size: '1.8 MB', author: 'Аналитик', authorEn: 'Analyst' },
@@ -39,14 +39,14 @@ export const reports: Report[] = [
   { id: 6, name: 'Маркетинговая аналитика', nameEn: 'Marketing Analytics', type: 'Маркетинг', typeEn: 'Marketing', status: 'completed', createdAt: '3 дня назад', size: '3.2 MB', author: 'Аналитик', authorEn: 'Analyst' },
 ];
 
-// Дашборды
+
 export const dashboards: Dashboard[] = [
   { id: 'sales-overview', title: 'Обзор продаж', titleEn: 'Sales Overview', description: 'Обзор продаж по категориям и регионам', descriptionEn: 'Sales overview by categories and regions' },
   { id: 'inventory-status', title: 'Статус запасов', titleEn: 'Inventory Status', description: 'Статус запасов и остатки на складах', descriptionEn: 'Inventory status and warehouse stock' },
   { id: 'promo-efficiency', title: 'Эффективность промо', titleEn: 'Promo Efficiency', description: 'Эффективность промоакций и скидок', descriptionEn: 'Promotions and discounts effectiveness' },
 ];
 
-// Уведомления
+
 export const notifications: Notification[] = [
   { id: 1, title: 'Новый заказ', titleEn: 'New Order', message: 'Заказ #12345 ожидает обработки', messageEn: 'Order #12345 awaiting processing', type: 'info', category: 'sales', read: false, createdAt: '2024-03-31 14:30' },
   { id: 2, title: 'Ошибка синхронизации', titleEn: 'Sync Error', message: 'Не удалось синхронизировать с 1С', messageEn: 'Failed to sync with 1C', type: 'error', category: 'system', read: false, createdAt: '2024-03-31 13:15' },
@@ -54,7 +54,7 @@ export const notifications: Notification[] = [
   { id: 4, title: 'Предупреждение', titleEn: 'Warning', message: 'Заканчивается место на диске', messageEn: 'Running out of disk space', type: 'warning', category: 'alerts', read: true, createdAt: '2024-03-30 18:45' },
 ];
 
-// Интеграции
+
 export const integrations: Integration[] = [
   { id: 'superset', name: 'Apache Superset', description: 'Визуализация данных и построение дашбордов', descriptionEn: 'Data visualization and dashboards', icon: 'Database', status: 'connected', statusText: 'Подключено', statusTextEn: 'Connected' },
   { id: 'telegram', name: 'Telegram Bot', description: 'Уведомления и команды через Telegram', descriptionEn: 'Notifications and commands via Telegram', icon: 'MessageSquare', status: 'connected', statusText: 'Активен', statusTextEn: 'Active' },
@@ -63,13 +63,13 @@ export const integrations: Integration[] = [
   { id: 'yookassa', name: 'ЮKassa', description: 'Приём онлайн-платежей', descriptionEn: 'Online payments processing', icon: 'CreditCard', status: 'disconnected', statusText: 'Не подключено', statusTextEn: 'Not Connected' },
 ];
 
-// API ключи
+
 export const apiKeys: ApiKey[] = [
   { id: '1', name: 'Production API Key', keyValue: 'mk_prod_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6', created: '15.01.2024', lastUsed: 'Сегодня, 14:32', lastUsedEn: 'Today, 14:32' },
   { id: '2', name: 'Development API Key', keyValue: 'mk_dev_x9y8z7w6v5u4t3s2r1q0p9o8n7m6l5k4', created: '10.12.2023', lastUsed: 'Вчера, 09:15', lastUsedEn: 'Yesterday, 09:15' },
 ];
 
-// Роли
+
 export const roles: Role[] = [
   { id: 'admin', name: 'Администратор', nameEn: 'Administrator', description: 'Полный доступ ко всем функциям системы', descriptionEn: 'Full access to all system features', permissions: ['edit_users', 'settings', 'view_financials', 'edit_products', 'export_data', 'roles', 'api'], color: 'bg-red-500' },
   { id: 'analyst', name: 'Аналитик', nameEn: 'Analyst', description: 'Просмотр аналитики и создание отчётов', descriptionEn: 'View analytics and create reports', permissions: ['view_analytics', 'create_reports', 'export_data', 'view_financials', 'view_dashboards'], color: 'bg-blue-500' },
@@ -77,10 +77,10 @@ export const roles: Role[] = [
   { id: 'viewer', name: 'Наблюдатель', nameEn: 'Viewer', description: 'Только просмотр основной информации', descriptionEn: 'Read-only access to basic information', permissions: ['view_dashboard', 'view_products'], color: 'bg-gray-500' },
 ];
 
-// Категории товаров
+
 export const productCategories = ['Все', 'Смартфоны', 'Ноутбуки', 'Планшеты', 'Аудио', 'Часы'];
 export const productCategoriesEn = ['All', 'Smartphones', 'Laptops', 'Tablets', 'Audio', 'Watches'];
 
-// Типы отчётов
+
 export const reportTypes = ['Все', 'Продажи', 'Пользователи', 'Финансы', 'Товары', 'Маркетинг'];
 export const reportTypesEn = ['All', 'Sales', 'Users', 'Finance', 'Products', 'Marketing'];

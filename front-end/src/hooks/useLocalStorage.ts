@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
-  // Получение значения из localStorage или initialValue
+
   const readValue = (): T => {
     if (typeof window === 'undefined') {
       return initialValue;
@@ -18,13 +18,13 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
 
   const [storedValue, setStoredValue] = useState<T>(readValue);
 
-  // Возвращать обновленное значение при изменении key
+
   useEffect(() => {
     setStoredValue(readValue());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [key]);
 
-  // Сохранение значения в localStorage
+
   const setValue = (value: T) => {
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
@@ -39,7 +39,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
     }
   };
 
-  // Обновление при изменении в других вкладках
+
   useEffect(() => {
     const handleStorageChange = () => {
       setStoredValue(readValue());

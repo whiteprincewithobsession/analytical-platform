@@ -64,13 +64,13 @@ export const Modal: React.FC<ModalProps> = ({
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
+      {}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={closeOnOverlay ? onClose : undefined}
       />
       
-      {/* Modal */}
+      {}
       <div
         className={cn(
           'relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden',
@@ -79,7 +79,7 @@ export const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
       >
-        {/* Header */}
+        {}
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div>
@@ -106,7 +106,7 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
         
-        {/* Content */}
+        {}
         <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-200px)]">
           {children}
         </div>

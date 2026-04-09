@@ -35,7 +35,7 @@ export const DashboardsPage: React.FC = () => {
     fetchDashboards();
   }, []);
 
-  // Close dropdown on outside click
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -71,7 +71,7 @@ export const DashboardsPage: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Dashboard Selector Bar */}
+      {}
       <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <BarChart3 className="w-4 h-4" />
@@ -127,7 +127,7 @@ export const DashboardsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Iframe Container */}
+      {}
       <div className="flex-1 bg-white dark:bg-gray-800">
         {selectedId ? (
           <SupersetDashboard

@@ -1,8 +1,8 @@
 import type { SearchResult } from '../types';
 
-// Данные для поиска с приоритетами и мультиязычностью
+
 export const searchItems: SearchResult[] = [
-  // Страницы (приоритет 10)
+
   {
     id: 'page-overview',
     type: 'page',
@@ -92,7 +92,7 @@ export const searchItems: SearchResult[] = [
     priority: 8,
   },
 
-  // Пользователи (приоритет 7)
+
   {
     id: 'user-1',
     type: 'user',
@@ -134,7 +134,7 @@ export const searchItems: SearchResult[] = [
     priority: 7,
   },
 
-  // Заказы (приоритет 6)
+
   {
     id: 'order-12345',
     type: 'order',
@@ -166,7 +166,7 @@ export const searchItems: SearchResult[] = [
     priority: 6,
   },
 
-  // Товары (приоритет 5)
+
   {
     id: 'product-1',
     type: 'product',
@@ -208,7 +208,7 @@ export const searchItems: SearchResult[] = [
     priority: 5,
   },
 
-  // Действия (приоритет 4)
+
   {
     id: 'action-1',
     type: 'action',
@@ -240,7 +240,7 @@ export const searchItems: SearchResult[] = [
     priority: 4,
   },
 
-  // Настройки (приоритет 3)
+
   {
     id: 'setting-profile',
     type: 'setting',
@@ -282,7 +282,7 @@ export const searchItems: SearchResult[] = [
     priority: 3,
   },
 
-  // Справка (приоритет 2)
+
   {
     id: 'help-docs',
     type: 'help',
@@ -315,13 +315,13 @@ export const searchItems: SearchResult[] = [
   },
 ];
 
-// Популярные запросы
+
 export const popularSearches: Record<string, string[]> = {
   ru: ['продажи', 'отчёты', 'пользователи', 'товары', 'аналитика', 'заказы'],
   en: ['sales', 'reports', 'users', 'products', 'analytics', 'orders'],
 };
 
-// Фильтры поиска
+
 export type SearchFilter = 'all' | 'page' | 'user' | 'order' | 'product' | 'action' | 'setting' | 'help';
 
 export const searchFilters: Record<SearchFilter, { ru: string; en: string }> = {

@@ -16,7 +16,7 @@ interface GlobalSearchProps {
   onOpenHelp?: () => void;
 }
 
-// Command definitions for command palette
+
 interface CommandItem {
   id: string;
   name: string;
@@ -41,7 +41,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
   const resultsRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Execute pending actions after modal closes
+
   useEffect(() => {
     if (pendingAction) {
       pendingAction();
@@ -51,7 +51,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
   const isMac = typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('mac');
   const modifierKey = isMac ? '⌘' : 'Ctrl';
 
-  // Fuzzy search scoring with typo tolerance
+
   const { results, groupedResults } = useSearch({
     query: isCommandMode ? query.slice(1) : query,
     items: isCommandMode ? [] : searchItems,
@@ -60,7 +60,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
     limit: 12,
   });
 
-  // Command palette items
+
   const commands: CommandItem[] = useMemo(() => [
     {
       id: 'theme-light', name: 'Светлая тема', nameEn: 'Light Theme',
@@ -110,11 +110,17 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
     {
       id: 'logout', name: 'Выйти из системы', nameEn: 'Logout',
       icon: 'LogOut', section: t('auth.logout'), shortcut: [], keywords: ['logout', 'выйти', 'выход'],
-      action: () => console.log('logout')
+      action: () => {
+        sessionStorage.removeItem('superset_authenticated');
+        localStorage.removeItem('admin-user');
+        fetch('/logout/', { credentials: 'include', redirect: 'manual' })
+          .catch(() => {})
+          .finally(() => window.location.reload());
+      }
     },
   ], [t, language]);
 
-  // Filter commands by query
+
   const filteredCommands = useMemo(() => {
     if (!query.startsWith('>') || query.length < 2) return commands;
     const q = query.slice(1).toLowerCase();
@@ -125,13 +131,13 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
     );
   }, [query, commands]);
 
-  // Recent searches for display
+
   const recentItems = useMemo(() =>
     recentSearches.slice(0, 5).map(s => s.q),
     [recentSearches]
   );
 
-  // Save search
+
   const saveRecentSearch = useCallback((search: string) => {
     const normalized = search.trim().toLowerCase();
     if (!normalized || normalized.startsWith('>')) return;
@@ -141,10 +147,10 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
     });
   }, [setRecentSearches]);
 
-  // Keyboard shortcuts
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+K / Cmd+K — open search
+
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsOpen(prev => { if (prev) { setQuery(''); setIsCommandMode(false); } return !prev; });
@@ -154,12 +160,12 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
         setQuery('');
         setIsCommandMode(false);
       }
-      // > to enter command mode
+
       if (isOpen && e.key === '>' && query === '') {
         e.preventDefault();
         setIsCommandMode(true);
       }
-      // Backspace to exit command mode
+
       if (isOpen && isCommandMode && query === '>' && e.key === 'Backspace') {
         e.preventDefault();
         setIsCommandMode(false);
@@ -171,22 +177,22 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isCommandMode, query]);
 
-  // Focus input when opened
+
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
-  // Reset selection on query change
+
   useEffect(() => {
     setSelectedIndex(0);
-    // Auto-scroll selected item into view
+
     const selected = resultsRef.current?.querySelector('[data-selected="true"]');
     selected?.scrollIntoView({ block: 'nearest' });
   }, [query, activeFilter]);
 
-  // Keyboard navigation
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const totalItems = isCommandMode ? filteredCommands.length : results.length;
 
@@ -237,7 +243,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
     setIsCommandMode(false);
   };
 
-  // Get icon by name
+
   const getIcon = (name: string) => {
     const icons: Record<string, React.FC<any>> = {
       BarChart3, TrendingUp, Package, Users, FileText, Settings, User,
@@ -247,7 +253,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
     return icons[name] || BarChart3;
   };
 
-  // Type badge color
+
   const typeColors: Record<string, string> = {
     page: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
     user: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
@@ -258,13 +264,13 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
     help: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
   };
 
-  // Get localized text
+
   const getText = (item: any, field: string): string => {
     if (language === 'en' && item[`${field}En`]) return item[`${field}En`];
     return item[field] || '';
   };
 
-  // Highlight matching text
+
   const highlight = (text: string, q: string, positions: number[] = []) => {
     if (!q || positions.length === 0) return <span>{text}</span>;
     const parts: React.ReactNode[] = [];
@@ -280,7 +286,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
 
   return (
     <>
-      {/* Search Input */}
+      {}
       <div className="flex-1 max-w-md mx-8">
         <button
           onClick={() => setIsOpen(true)}
@@ -295,14 +301,14 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
         </button>
       </div>
 
-      {/* Modal */}
+      {}
       {isOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={handleClose} />
           <div className="fixed inset-x-4 top-[15vh] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl z-50 animate-in zoom-in-95">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200/80 dark:border-gray-700/80 overflow-hidden ring-1 ring-black/5">
 
-              {/* Input area */}
+              {}
               <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-700/50">
                 {isCommandMode ? (
                   <Sparkles className="w-5 h-5 text-indigo-500 flex-shrink-0" />
@@ -336,7 +342,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
                 </div>
               </div>
 
-              {/* Filters */}
+              {}
               {!isCommandMode && query.trim() !== '' && (
                 <div className="px-5 py-2.5 border-b border-gray-100 dark:border-gray-700/50 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
                   <Filter className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mr-1" />
@@ -356,11 +362,11 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
                 </div>
               )}
 
-              {/* Results area */}
+              {}
               <div ref={scrollContainerRef} className="max-h-[50vh] overflow-y-auto overscroll-contain">
                 {query.trim() === '' && !isCommandMode ? (
                   <div className="p-3">
-                    {/* Quick actions */}
+                    {}
                     <div className="mb-3">
                       <h3 className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-3 mb-2">
                         {language === 'ru' ? 'Быстрые действия' : 'Quick Actions'}
@@ -391,7 +397,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
                       </div>
                     </div>
 
-                    {/* Recent searches */}
+                    {}
                     {recentItems.length > 0 && (
                       <div className="mb-2">
                         <div className="flex items-center justify-between px-3 mb-1.5">
@@ -419,7 +425,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
                       </div>
                     )}
 
-                    {/* Popular */}
+                    {}
                     <div>
                       <h3 className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-3 mb-1.5 flex items-center gap-1.5">
                         <Zap className="w-3 h-3" />
@@ -438,7 +444,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
                       </div>
                     </div>
 
-                    {/* Command mode hint */}
+                    {}
                     <div className="mt-3 mx-3 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700/50">
                       <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center">
                         {language === 'ru'
@@ -576,7 +582,7 @@ export function GlobalSearch({ onNavigate, onOpenSettings, onOpenHelp }: GlobalS
                 )}
               </div>
 
-              {/* Footer */}
+              {}
               <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50/80 dark:bg-gray-800/50 flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500">
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-1">

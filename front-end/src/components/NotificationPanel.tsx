@@ -69,7 +69,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div className="absolute right-0 top-full mt-2 w-96 max-h-[calc(100vh-100px)] bg-white dark:bg-gray-800 corporate:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 corporate:border-slate-600 z-50 overflow-hidden flex flex-col">
-        {/* Header */}
+        {}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-600">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white corporate:text-white">
@@ -107,7 +107,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           </div>
         </div>
 
-        {/* Notifications List */}
+        {}
         <div className="flex-1 overflow-y-auto">
           {filteredNotifications.length === 0 ? (
             <div className="p-8 text-center">
@@ -128,7 +128,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           )}
         </div>
 
-        {/* Footer */}
+        {}
         {notifications.length > 0 && (
           <div className="p-3 border-t border-gray-200 dark:border-gray-700 corporate:border-slate-600 flex items-center justify-between">
             <button

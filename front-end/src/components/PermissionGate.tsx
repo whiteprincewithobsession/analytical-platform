@@ -50,7 +50,7 @@ export function PermissionGate({
   return null;
 }
 
-// Компонент для страниц без доступа
+
 export function AccessDeniedPage() {
   const { role } = usePermissions();
 
@@ -76,7 +76,7 @@ export function AccessDeniedPage() {
   );
 }
 
-// HOC для защиты страниц
+
 interface ProtectedPageProps {
   permission: Permission;
   children: ReactNode;

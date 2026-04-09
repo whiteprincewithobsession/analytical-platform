@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
-// Table
+
 export interface TableProps {
   children: React.ReactNode;
   className?: string;
@@ -18,7 +18,7 @@ export const Table: React.FC<TableProps> = ({ children, className, hoverable = t
   );
 };
 
-// Table Header
+
 export interface TableHeaderProps {
   children: React.ReactNode;
   className?: string;
@@ -32,7 +32,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({ children, className })
   );
 };
 
-// Table Body
+
 export interface TableBodyProps {
   children: React.ReactNode;
   className?: string;
@@ -46,7 +46,7 @@ export const TableBody: React.FC<TableBodyProps> = ({ children, className }) => 
   );
 };
 
-// Table Row
+
 export interface TableRowProps {
   children: React.ReactNode;
   className?: string;
@@ -69,7 +69,7 @@ export const TableRow: React.FC<TableRowProps> = ({ children, className, onClick
   );
 };
 
-// Table Head Cell
+
 export interface TableHeadProps {
   children: React.ReactNode;
   className?: string;
@@ -99,7 +99,7 @@ export const TableHead: React.FC<TableHeadProps> = ({
   );
 };
 
-// Table Cell
+
 export interface TableCellProps {
   children: React.ReactNode;
   className?: string;
@@ -131,7 +131,7 @@ export const TableCell: React.FC<TableCellProps> = ({
   );
 };
 
-// Table Footer
+
 export interface TableFooterProps {
   children: React.ReactNode;
   className?: string;

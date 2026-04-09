@@ -62,14 +62,14 @@ export function NotificationsFullModal({ isOpen, onClose }: NotificationsFullMod
   if (!isOpen) return null;
 
   const filteredNotifications = notifications.filter(n => {
-    // Search filter
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       if (!n.title.toLowerCase().includes(query) && !n.message.toLowerCase().includes(query)) {
         return false;
       }
     }
-    // Category filter
+
     if (filter === 'unread') return !n.read;
     if (filter !== 'all') return n.category === filter;
     return true;
@@ -125,7 +125,7 @@ export function NotificationsFullModal({ isOpen, onClose }: NotificationsFullMod
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-4xl max-h-[85vh] bg-white dark:bg-gray-800 corporate:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-600">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-900/30">
@@ -165,7 +165,7 @@ export function NotificationsFullModal({ isOpen, onClose }: NotificationsFullMod
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
+          {}
           <div className="w-48 border-r border-gray-200 dark:border-gray-700 corporate:border-slate-600 p-3 flex-shrink-0">
             <button
               onClick={() => setFilter('all')}
@@ -235,9 +235,9 @@ export function NotificationsFullModal({ isOpen, onClose }: NotificationsFullMod
             })}
           </div>
 
-          {/* Content */}
+          {}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Search & Actions Bar */}
+            {}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-600 flex items-center gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -273,7 +273,7 @@ export function NotificationsFullModal({ isOpen, onClose }: NotificationsFullMod
               )}
             </div>
 
-            {/* Select All */}
+            {}
             {filteredNotifications.length > 0 && (
               <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 flex items-center gap-3">
                 <input
@@ -288,7 +288,7 @@ export function NotificationsFullModal({ isOpen, onClose }: NotificationsFullMod
               </div>
             )}
 
-            {/* Notifications List */}
+            {}
             <div className="flex-1 overflow-y-auto">
               {filteredNotifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">

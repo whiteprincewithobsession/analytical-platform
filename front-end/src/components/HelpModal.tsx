@@ -154,7 +154,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-4xl max-h-[85vh] bg-white dark:bg-gray-800 corporate:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-600">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-900/30">
@@ -178,7 +178,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
+          {}
           <div className="w-52 border-r border-gray-200 dark:border-gray-700 corporate:border-slate-600 p-3 flex-shrink-0">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button
@@ -196,11 +196,11 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             ))}
           </div>
 
-          {/* Content */}
+          {}
           <div className="flex-1 p-6 overflow-y-auto">
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* Welcome */}
+                {}
                 <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
                   <h3 className="text-xl font-bold mb-2">Добро пожаловать в справочный центр!</h3>
                   <p className="opacity-90 mb-4">
@@ -225,7 +225,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   </div>
                 </div>
 
-                {/* Quick Links */}
+                {}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     Быстрые ссылки
@@ -254,7 +254,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   </div>
                 </div>
 
-                {/* Contact Info */}
+                {}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
                     <div className="flex items-center gap-3 mb-2">
@@ -398,7 +398,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
             {activeTab === 'support' && (
               <div className="space-y-6">
-                {/* Create Ticket */}
+                {}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     Создать обращение
@@ -450,7 +450,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   </div>
                 </div>
 
-                {/* Recent Tickets */}
+                {}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     Ваши обращения

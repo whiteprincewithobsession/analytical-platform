@@ -1,15 +1,15 @@
-// Валидация email
+
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
-// Валидация пароля
+
 export const isValidPassword = (password: string, minLength: number = 8): boolean => {
   return password.length >= minLength;
 };
 
-// Проверка сложности пароля
+
 export const checkPasswordStrength = (password: string): 'weak' | 'medium' | 'strong' => {
   if (password.length < 8) return 'weak';
   
@@ -25,13 +25,13 @@ export const checkPasswordStrength = (password: string): 'weak' | 'medium' | 'st
   return 'weak';
 };
 
-// Валидация телефона
+
 export const isValidPhone = (phone: string): boolean => {
   const phoneRegex = /^\+?[\d\s-()]{10,}$/;
   return phoneRegex.test(phone);
 };
 
-// Валидация URL
+
 export const isValidUrl = (url: string): boolean => {
   try {
     new URL(url);
@@ -41,7 +41,7 @@ export const isValidUrl = (url: string): boolean => {
   }
 };
 
-// Валидация числа
+
 export const isValidNumber = (value: string, min?: number, max?: number): boolean => {
   const num = Number(value);
   if (isNaN(num)) return false;
@@ -50,20 +50,20 @@ export const isValidNumber = (value: string, min?: number, max?: number): boolea
   return true;
 };
 
-// Валидация required
+
 export const isRequired = (value: any): boolean => {
   if (typeof value === 'string') return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
   return value !== null && value !== undefined;
 };
 
-// Валидация длины строки
+
 export const isValidLength = (value: string, min: number, max: number): boolean => {
   const length = value.length;
   return length >= min && length <= max;
 };
 
-// Валидация JSON
+
 export const isValidJson = (value: string): boolean => {
   try {
     JSON.parse(value);
@@ -73,7 +73,7 @@ export const isValidJson = (value: string): boolean => {
   }
 };
 
-// Универсальная функция валидации
+
 export interface ValidationRule {
   type: 'required' | 'email' | 'password' | 'phone' | 'url' | 'number' | 'length' | 'custom';
   message?: string;
@@ -176,7 +176,7 @@ export const validate = (
           field,
           message: language === 'en' && messageEn ? messageEn : message,
         });
-        break; // Только первая ошибка для поля
+        break;
       }
     }
   });

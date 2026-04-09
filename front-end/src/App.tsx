@@ -65,7 +65,7 @@ function App() {
   useEffect(() => {
     const authFlag = sessionStorage.getItem('superset_authenticated');
     if (authFlag === 'true') {
-      // Verify session is still valid
+
       fetch('/api/v1/me/', { credentials: 'include' })
         .then(res => {
           if (res.ok) {

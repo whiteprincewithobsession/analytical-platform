@@ -25,7 +25,7 @@ export function SalesPage() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Toolbar */}
+      {}
       <div className="flex items-center justify-end gap-3 mb-4">
         <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-1">
           {['week', 'month', 'quarter', 'year'].map(range => (
@@ -57,7 +57,7 @@ export function SalesPage() {
         </PermissionGate>
       </div>
 
-      {/* Superset Dashboard */}
+      {}
       <div className="flex-1">
         <SupersetDashboard
           dashboardId="2"

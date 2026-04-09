@@ -53,7 +53,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
         break;
     }
 
-    // Keep tooltip within viewport
+
     const padding = 10;
     x = Math.max(padding, Math.min(x, window.innerWidth - tooltipRect.width - padding));
     y = Math.max(padding, Math.min(y, window.innerHeight - tooltipRect.height - padding));
@@ -120,7 +120,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   );
 };
 
-// Компонент для текста с автоматическим тултипом при обрезке
+
 interface TruncatedTextProps {
   text: string;
   className?: string;

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head><title>Superset Login</title></head>
+<body onload="document.getElementById('loginForm').submit()">
+<form id="loginForm" method="POST" action="/login/">
+  <input type="hidden" name="username" value="admin">
+  <input type="hidden" name="password" value="admin">
+  <noscript><button type="submit">Login</button></noscript>
+</form>
+<p>Logging in...</p>
+</body>
+</html>

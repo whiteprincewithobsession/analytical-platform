@@ -7,19 +7,17 @@ import { ThemeSwitcher } from './ThemeSwitcher';
 import { GlobalSearch } from './GlobalSearch';
 
 interface HeaderProps {
-  pageTitle: string;
   onOpenSettings: () => void;
   onNavigate?: (path: string) => void;
   onOpenHelp?: () => void;
   onOpenNotifications?: () => void;
 }
 
-export function Header({ 
-  pageTitle, 
-  onOpenSettings, 
+export function Header({
+  onOpenSettings,
   onNavigate,
   onOpenHelp,
-  onOpenNotifications 
+  onOpenNotifications
 }: HeaderProps) {
   const { unreadCount } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -34,16 +32,12 @@ export function Header({
 
   return (
     <header className="h-16 bg-white dark:bg-gray-800 corporate:bg-slate-800 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-700 px-6 flex items-center justify-between">
-      {/* Left side */}
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white corporate:text-white">
-          {pageTitle}
-        </h1>
-      </div>
+      {/* Empty left side for balance */}
+      <div className="flex-1" />
 
       {/* Center - Global Search */}
-      <GlobalSearch 
-        onNavigate={onNavigate} 
+      <GlobalSearch
+        onNavigate={onNavigate}
         onOpenSettings={onOpenSettings}
         onOpenHelp={onOpenHelp}
       />
@@ -70,8 +64,8 @@ export function Header({
         </div>
 
         {/* Profile */}
-        <ProfileMenu 
-          onOpenSettings={onOpenSettings} 
+        <ProfileMenu
+          onOpenSettings={onOpenSettings}
           onOpenHelp={onOpenHelp}
           onOpenNotifications={handleOpenNotifications}
         />

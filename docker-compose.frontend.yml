@@ -5,5 +5,12 @@ services:
     build: ./front-end
     container_name: retail_frontend
     ports:
-      - "3000:80"
+      - "0.0.0.0:3000:80"
     restart: unless-stopped
+    networks:
+      - retail_network
+
+networks:
+  retail_network:
+    external: true
+    name: analytical_platform_retail_network

@@ -13,29 +13,29 @@ interface UseSearchOptions {
 export function fuzzyMatch(query: string, text: string): { score: number; positions: number[] } {
   const queryLower = query.toLowerCase();
   const textLower = text.toLowerCase();
-  
+
   // Точное совпадение
   if (textLower === queryLower) {
-    return { score: 100, positions: [0] };
+    return { score: 100, positions: Array.from({ length: queryLower.length }, (_, i) => i) };
   }
-  
+
   // Совпадение начала
   if (textLower.startsWith(queryLower)) {
-    return { score: 90, positions: [0] };
+    return { score: 90, positions: Array.from({ length: queryLower.length }, (_, i) => i) };
   }
-  
-  // Поиск подстроки
+
+  // Поиск подстроки — возвращаем ВСЕ позиции совпавшей подстроки
   const index = textLower.indexOf(queryLower);
   if (index !== -1) {
-    return { score: 80, positions: [index] };
+    return { score: 80, positions: Array.from({ length: queryLower.length }, (_, i) => index + i) };
   }
-  
-  // Нечеткое совпадение
+
+  // Нечеткое совпадение — возвращаем все позиции совпавших символов
   let queryIndex = 0;
   const positions: number[] = [];
   let consecutiveMatches = 0;
   let maxConsecutiveMatches = 0;
-  
+
   for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
     if (textLower[i] === queryLower[queryIndex]) {
       positions.push(i);
@@ -46,14 +46,14 @@ export function fuzzyMatch(query: string, text: string): { score: number; positi
       consecutiveMatches = 0;
     }
   }
-  
+
   if (queryIndex === queryLower.length) {
     const density = positions.length / text.length;
     const consecutiveBonus = maxConsecutiveMatches * 5;
     const score = Math.round(50 * density + consecutiveBonus);
     return { score: Math.min(score, 75), positions };
   }
-  
+
   return { score: 0, positions: [] };
 }
 

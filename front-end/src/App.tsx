@@ -1,138 +1,112 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LocalizationProvider } from './contexts/LocalizationContext';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { LocalizationProvider, useLocalization } from './contexts/LocalizationContext';
-import { LoginPage } from './components/LoginPage';
+import { AuthProvider } from './contexts/AuthContext';
+import { SupersetLoginGate } from './components/SupersetLoginGate';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { SettingsModal } from './components/SettingsModal';
-import { HelpModal } from './components/HelpModal';
-import { NotificationsFullModal } from './components/NotificationsFullModal';
-import { ProtectedPage, AccessDeniedPage } from './components/PermissionGate';
 import { OverviewPage } from './pages/OverviewPage';
+import { DashboardsPage } from './pages/DashboardsPage';
 import { SalesPage } from './pages/SalesPage';
-import { UsersPage } from './pages/UsersPage';
+import { ProductsPage } from './pages/ProductsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { ReportsPage } from './pages/ReportsPage';
-import { ProductsPage } from './pages/ProductsPage';
-import { DashboardsPage } from './pages/DashboardsPage';
+import { UsersPage } from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
-import { hasPermission, pagePermissions } from './config/permissions';
+import { HelpModal } from './components/HelpModal';
+import { SettingsModal } from './components/SettingsModal';
 
-function AdminPanel() {
-  const { isAuthenticated, user } = useAuth();
-  const { t } = useLocalization();
+function AppContent() {
   const [activePage, setActivePage] = useState('overview');
-  const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<string | undefined>(undefined);
-  const [showHelp, setShowHelp] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-
-  const handleOpenSettings = (tab?: string) => {
-    setSettingsTab(tab);
-    setShowSettings(true);
-  };
-
-  const pageTitles: Record<string, string> = {
-    overview: t('nav.overview'),
-    sales: t('nav.sales'),
-    products: t('nav.products'),
-    analytics: t('nav.analytics'),
-    dashboards: t('nav.dashboards'),
-    users: t('nav.users'),
-    reports: t('nav.reports'),
-    settings: t('nav.settings'),
-  };
-
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<string | null>(null);
 
   const renderPage = () => {
-    const requiredPermissions = pagePermissions[activePage];
-    const hasAccess = requiredPermissions?.every(p => hasPermission(user?.role, p)) ?? true;
-
-    if (!hasAccess) {
-      return <AccessDeniedPage />;
-    }
-
     switch (activePage) {
-      case 'overview':
-        return <OverviewPage />;
-      case 'sales':
-        return <SalesPage />;
-      case 'products':
-        return <ProductsPage />;
-      case 'analytics':
-        return (
-          <ProtectedPage permission="view_analytics">
-            <AnalyticsPage />
-          </ProtectedPage>
-        );
-      case 'dashboards':
-        return (
-          <ProtectedPage permission="view_dashboards">
-            <DashboardsPage />
-          </ProtectedPage>
-        );
-      case 'reports':
-        return (
-          <ProtectedPage permission="view_reports">
-            <ReportsPage />
-          </ProtectedPage>
-        );
-      case 'users':
-        return (
-          <ProtectedPage permission="view_users">
-            <UsersPage />
-          </ProtectedPage>
-        );
-      case 'settings':
-        return (
-          <ProtectedPage permission="view_settings">
-            <SettingsPage />
-          </ProtectedPage>
-        );
-      default:
-        return <OverviewPage />;
+      case 'overview': return <OverviewPage />;
+      case 'dashboards': return <DashboardsPage />;
+      case 'sales': return <SalesPage />;
+      case 'products': return <ProductsPage />;
+      case 'analytics': return <AnalyticsPage />;
+      case 'reports': return <ReportsPage />;
+      case 'users': return <UsersPage />;
+      case 'settings': return <SettingsPage />;
+      default: return <OverviewPage />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 corporate:bg-slate-900">
-      <Sidebar 
-        activePage={activePage} 
-        onPageChange={setActivePage} 
-        onOpenHelp={() => setShowHelp(true)}
-      />
+    <div className="h-screen flex bg-gray-50 dark:bg-gray-900 corporate:bg-slate-950">
+      {sidebarOpen && <Sidebar activePage={activePage} onPageChange={setActivePage} onOpenHelp={() => setHelpOpen(true)} />}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
-          pageTitle={pageTitles[activePage] || 'Обзор'}
-          onOpenSettings={handleOpenSettings}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          onOpenSettings={setSettingsTab}
           onNavigate={setActivePage}
-          onOpenHelp={() => setShowHelp(true)}
-          onOpenNotifications={() => setShowNotifications(true)}
+          onOpenHelp={() => setHelpOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto p-6">{renderPage()}</main>
+        <main className="flex-1 overflow-y-auto p-6">
+          {renderPage()}
+        </main>
       </div>
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} activeTab={settingsTab} />
-      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
-      <NotificationsFullModal isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+      <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+      {settingsTab && <SettingsModal isOpen={!!settingsTab} onClose={() => setSettingsTab(null)} activeTab={settingsTab} />}
     </div>
   );
 }
 
-export default function App() {
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    const authFlag = sessionStorage.getItem('superset_authenticated');
+    if (authFlag === 'true') {
+      // Verify session is still valid
+      fetch('/api/v1/me/', { credentials: 'include' })
+        .then(res => {
+          if (res.ok) {
+            setIsAuthenticated(true);
+          } else {
+            sessionStorage.removeItem('superset_authenticated');
+          }
+        })
+        .catch(() => sessionStorage.removeItem('superset_authenticated'))
+        .finally(() => setIsChecking(false));
+    } else {
+      setIsChecking(false);
+    }
+  }, []);
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400"></div>
+          <p className="mt-4 text-indigo-200">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <SupersetLoginGate onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <ThemeProvider>
       <LocalizationProvider>
-        <AuthProvider>
-          <NotificationProvider>
-            <AdminPanel />
-          </NotificationProvider>
-        </AuthProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </NotificationProvider>
       </LocalizationProvider>
     </ThemeProvider>
   );
 }
+
+export default App;

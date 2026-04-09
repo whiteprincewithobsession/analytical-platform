@@ -101,9 +101,12 @@ services:
     environment:
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
       SUPERSET_DATABASE_URI: "postgresql+psycopg2://${SUPERSET_POSTGRES_USER}:${SUPERSET_POSTGRES_PASSWORD}@supersetdb:5432/${SUPERSET_POSTGRES_DB}"
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      PYTHONPATH: /app/pythonpath
     volumes:
       - ./superset_home:/app/superset_home
       - ./docker/requirements-local.txt:/app/requirements-local.txt
+      - ./superset-custom/superset_config.py:/app/pythonpath/superset_config.py
       - ./superset-custom/templates/appbuilder:/usr/local/lib/python3.9/site-packages/flask_appbuilder/templates/appbuilder:rw
       - ./superset-custom/templates/superset:/app/superset/templates/superset:ro
       - ./superset-custom/static:/app/superset/static/custom:rw

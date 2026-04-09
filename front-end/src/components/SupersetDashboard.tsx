@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocalization } from '../contexts/LocalizationContext';
 import { DashboardPlaceholder } from './DashboardPlaceholder';
 
@@ -16,26 +16,22 @@ export const SupersetDashboard: React.FC<SupersetDashboardProps> = ({
   const { t } = useLocalization();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authDone, setAuthDone] = useState(false);
 
-  // URL для подключения к Apache Superset
-  // const iframeUrl = `${process.env.VITE_SUPERSET_URL}/superset/dashboard/${dashboardId}/?standalone=1`;
-  const iframeUrl = ''; // Пустой, пока нет реального URL
+  useEffect(() => {
+    // Wait 2 seconds for auto-login iframe to set the session cookie
+    const timer = setTimeout(() => setAuthDone(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const handleIframeLoad = () => {
+  const handleDashboardLoad = () => {
     setIsLoading(false);
   };
 
-  const handleIframeError = () => {
+  const handleDashboardError = () => {
     setError('Не удалось загрузить дашборд');
     setIsLoading(false);
   };
-
-  // Если URL пустой, сразу снимаем загрузку
-  React.useEffect(() => {
-    if (!iframeUrl) {
-      setIsLoading(false);
-    }
-  }, [iframeUrl]);
 
   return (
     <div className="flex flex-col w-full bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" style={{ height }}>
@@ -46,6 +42,15 @@ export const SupersetDashboard: React.FC<SupersetDashboardProps> = ({
       )}
 
       <div className="relative flex-1 w-full h-full">
+        {/* Hidden auto-login iframe */}
+        <iframe
+          src="/superset-login.html"
+          width="0"
+          height="0"
+          style={{ display: 'none' }}
+          title="Superset Auth"
+        />
+
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900 z-10">
             <div className="flex flex-col items-center">
@@ -69,24 +74,21 @@ export const SupersetDashboard: React.FC<SupersetDashboardProps> = ({
           </div>
         )}
 
-        {/* Контейнер для встраивания Superset через iframe или заглушка */}
-        <div className="w-full h-full absolute inset-0">
-          {iframeUrl ? (
+        {authDone && (
+          <div className="w-full h-full absolute inset-0">
             <iframe
-              src={iframeUrl}
+              src={`/superset/dashboard/${dashboardId}/?standalone=1&show_filters=true`}
               width="100%"
               height="100%"
               frameBorder="0"
-              onLoad={handleIframeLoad}
-              onError={handleIframeError}
+              onLoad={handleDashboardLoad}
+              onError={handleDashboardError}
               title={title || 'Superset Dashboard'}
               className="w-full h-full border-0"
               allow="fullscreen"
             />
-          ) : (
-            <DashboardPlaceholder dashboardId={dashboardId} title={title} />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -103,3 +103,4 @@ front-end/Thumbs.db
 flink/results/
 flink/__pycache__/
 flink/*.pyc
+flink/connectors/*.jar

@@ -256,7 +256,7 @@ def validate_parquet(**context):
     ti = context["ti"]
     ti.xcom_push(key="parquet_count", value=len(parquet_files))
     ti.xcom_push(key="parquet_size", value=total_size)
-    ti.xcom_push(key="parquet_files", [f["Key"] for f in parquet_files])
+    ti.xcom_push(key="parquet_files", value=[f["Key"] for f in parquet_files])
 
 
 # ============================================================

@@ -1,23 +1,23 @@
 """
-Airflow DAG: PostgreSQL → Spark Extract → S3 (Parquet) → Spark Load → ClickHouse
+Airflow DAG: PostgreSQL -> Spark Extract -> S3 (Parquet) -> Spark Load -> ClickHouse
 
 Pipeline:
-  1. check_connections    — проверить PG, S3, CH
-  2. create_ch_tables   — создать таблицы в ClickHouse (DDL, если нет)
-  3. extract_pg_to_s3   — Spark: PostgreSQL → S3 (Parquet)
-  4. validate_parquet   — проверить что Parquet файлы записаны
-  5. load_s3_to_ch      — Spark: S3 (Parquet) → ClickHouse
-  6. validate_ch        — проверить что данные загружены
-  7. cleanup_old_s3     — удалить старые S3 партиции (> TTL)
-  8. send_summary       — итоговый лог
+  1. check_connections
+  2. create_ch_tables
+  3. extract_pg_to_s3
+  4. validate_parquet
+  5. load_s3_to_ch
+  6. validate_ch
+  7. cleanup_old_s3
+  8. send_summary
 
-Режимы запуска:
-  - full load: без параметров (все таблицы)
+Modes:
+  - full load: no params
   - incremental: env INCREMENTAL_WATERMARK=2025-01-01
   - partial: env LOAD_TABLES=sales.orders,cart.cart
 
 Schedule: daily at 02:00 UTC
-Retry: 3 раза с exponential backoff (5min, 15min, 45min)
+Retry: 3 times with exponential backoff (5min, 15min, 45min)
 """
 
 import os
@@ -34,9 +34,6 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 import logging
 
-# ============================================================
-# Configuration (override via Airflow Variables / env)
-# ============================================================
 SPARK_MASTER = os.getenv("SPARK_MASTER", "spark://spark-master:7077")
 S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localstack:4566")
 S3_BUCKET = os.getenv("S3_BUCKET", "etl-staging")
@@ -72,9 +69,6 @@ DEFAULT_ARGS = {
 }
 
 
-# ============================================================
-# Spark job runner via Docker exec into spark_master
-# ============================================================
 def _run_spark_job(script: str, packages: str, spark_conf: dict, env_vars: dict):
     """Execute spark-submit inside spark_master container via Docker API."""
     client = docker.from_env()
@@ -87,14 +81,12 @@ def _run_spark_job(script: str, packages: str, spark_conf: dict, env_vars: dict)
         "--master", SPARK_MASTER,
         "--deploy-mode", "client",
     ]
-    # Only add --packages if needed (we pre-install jars to avoid Ivy)
     if packages:
         cmd_parts.extend(["--packages", packages])
     for k, v in spark_conf.items():
         cmd_parts.extend(["--conf", f"{k}={v}"])
     cmd_parts.append(f"{SPARK_JOBS_DIR}/{script}")
 
-    # Use /tmp/.ivy2 as fallback — but jars are pre-installed
     env_exports = " ".join(f'{k}="{v}"' for k, v in env_vars.items())
     cmd = (
         f"export {env_exports}; "
@@ -144,15 +136,11 @@ def _get_pg_connection():
 
 
 def _get_ch_connection():
-    # ClickHouse HTTP interface
     return f"http://{CH_HOST}:{CH_PORT}"
 
 
-# ============================================================
-# Task 1: Check connections
-# ============================================================
 def check_connections(**context):
-    """Проверить доступность PostgreSQL, S3, ClickHouse."""
+    """Check PostgreSQL, S3, ClickHouse connectivity."""
     logging.info("=" * 70)
     logging.info("CHECKING CONNECTIONS")
     logging.info("=" * 70)
@@ -221,13 +209,9 @@ def check_connections(**context):
     logging.info("=" * 70)
 
 
-# ============================================================
-# Task 2: Create ClickHouse tables (DDL)
-# ============================================================
 def create_clickhouse_tables(**context):
-    """Создать таблицы в ClickHouse из DDL файлов."""
+    """Create ClickHouse tables from DDL files."""
     ddl_dir = "/opt/spark/jobs/ddl"
-    # DDL файлы копируются через volume в docker-compose
     ddl_files = [
         "etl_stage2_tables.sql",
     ]
@@ -245,10 +229,8 @@ def create_clickhouse_tables(**context):
         with open(ddl_path, "r") as f:
             ddl_content = f.read()
 
-        # Split by semicolon and execute each statement
         statements = [s.strip() for s in ddl_content.split(";") if s.strip()]
         for stmt in statements:
-            # Skip comments-only lines
             lines = [l for l in stmt.split("\n") if l.strip() and not l.strip().startswith("--")]
             if not lines:
                 continue
@@ -257,19 +239,16 @@ def create_clickhouse_tables(**context):
             try:
                 resp = requests.post(f"{ch_url}/", data=full_stmt.encode("utf-8"), auth=auth)
                 if resp.status_code == 200:
-                    logging.info(f"  OK: {stmt[:80]}...")
+                    logging.info(f"  OK: {full_stmt[:80]}...")
                 else:
-                    # Table already exists is OK
                     if "already exists" in resp.text.lower():
-                        logging.info(f"  SKIP (exists): {stmt[:80]}...")
+                        logging.info(f"  SKIP (exists): {full_stmt[:80]}...")
                     else:
                         logging.error(f"  FAIL: {resp.text}")
                         raise Exception(f"DDL execution failed: {resp.text}")
             except requests.ConnectionError:
-                logging.error(f"  CONNECTION FAILED to ClickHouse")
                 raise
 
-    # Verify tables
     verify_query = f"SELECT database, name, engine FROM system.tables WHERE database='{CH_DATABASE}' ORDER BY name"
     resp = requests.post(
         f"{ch_url}/?query={urllib.parse.quote(verify_query)}",
@@ -282,11 +261,8 @@ def create_clickhouse_tables(**context):
         logging.info(f"  {t}")
 
 
-# ============================================================
-# Task 4: Validate Parquet files in S3
-# ============================================================
 def validate_parquet(**context):
-    """Проверить что Parquet файлы записаны в S3."""
+    """Verify Parquet files exist in S3."""
     s3 = _get_boto3_s3_client()
     snapshot_date = os.getenv("SNAPSHOT_DATE", datetime.now().strftime("%Y-%m-%d"))
 
@@ -311,11 +287,8 @@ def validate_parquet(**context):
     ti.xcom_push(key="parquet_files", value=[f["Key"] for f in parquet_files])
 
 
-# ============================================================
-# Task 6: Validate ClickHouse load
-# ============================================================
 def validate_clickhouse(**context):
-    """Проверить что данные загружены в ClickHouse."""
+    """Verify ClickHouse load."""
     ch_url = _get_ch_connection()
     auth = (CH_USER, CH_PASSWORD)
 
@@ -329,11 +302,8 @@ def validate_clickhouse(**context):
         logging.info(f"  {line}")
 
 
-# ============================================================
-# Task 7: Cleanup old S3 partitions
-# ============================================================
 def cleanup_old_s3(**context):
-    """Удалить S3 партиции старше TTL (по умолчанию 30 дней)."""
+    """Delete S3 partitions older than TTL (default 30 days)."""
     from datetime import datetime, timedelta, timezone
 
     s3 = _get_boto3_s3_client()
@@ -355,14 +325,10 @@ def cleanup_old_s3(**context):
     logging.info(f"Cleanup: deleted {deleted} objects older than {retention_days} days")
 
 
-# ============================================================
-# Task 8: Send summary
-# ============================================================
 def send_summary(**context):
-    """Итоговый лог DAG execution."""
+    """Log DAG execution summary."""
     ti = context["ti"]
 
-    # Extract results (from Spark logs, best effort)
     parquet_count = ti.xcom_pull(key="parquet_count", task_ids="validate_parquet") or 0
     parquet_size = ti.xcom_pull(key="parquet_size", task_ids="validate_parquet") or 0
 
@@ -376,14 +342,11 @@ def send_summary(**context):
     logging.info("=" * 70)
 
 
-# ============================================================
-# DAG definition
-# ============================================================
 with DAG(
     dag_id="pg_spark_ch_etl",
     default_args=DEFAULT_ARGS,
-    description="PostgreSQL → Spark → S3 (Parquet) → Spark → ClickHouse ETL",
-    schedule_interval="0 2 * * *",  # daily at 02:00 UTC
+    description="PostgreSQL -> Spark -> S3 (Parquet) -> Spark -> ClickHouse ETL",
+    schedule_interval="0 2 * * *",
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=["etl", "spark", "postgresql", "clickhouse", "s3"],
@@ -391,23 +354,34 @@ with DAG(
     concurrency=1,
 ) as dag:
 
-    # --- Task 1: Check connections ---
     t_check = PythonOperator(
         task_id="check_connections",
         python_callable=check_connections,
+        doc_md="""\
+### Проверка подключений
+
+Проверяет соединение с PostgreSQL, ClickHouse и S3 (LocalStack).
+Перечисляет схемы и таблицы PostgreSQL, проверяет наличие S3-бакета.
+Убеждается, что целевая база ClickHouse доступна.
+""",
     )
 
-    # --- Task 2: Create ClickHouse tables (DDL) ---
     t_ddl = PythonOperator(
         task_id="create_clickhouse_tables",
         python_callable=create_clickhouse_tables,
+        doc_md="""\
+### Создание таблиц в ClickHouse
+
+Выполняет DDL-скрипты из `/opt/spark/jobs/ddl/etl_stage2_tables.sql`.
+Создает целевые таблицы в ClickHouse для денормализованных данных.
+Пропускает таблицы, которые уже существуют.
+""",
     )
 
-    # --- Task 3: Spark Extract — PostgreSQL → S3 ---
     def _task_extract(**context):
         _run_spark_job(
             script="extract_pg_to_s3.py",
-            packages="",  # PostgreSQL JDBC jar pre-installed in /opt/spark/jars/
+            packages="",
             spark_conf={
                 "spark.executor.instances": "2",
                 "spark.executor.cores": "2",
@@ -425,26 +399,37 @@ with DAG(
                 "S3_SECRET_KEY": S3_SECRET_KEY,
                 "S3_BUCKET": S3_BUCKET,
                 "SNAPSHOT_DATE": context["ds"],
-                "INCREMENTAL_WATERMARK": "",  # overridden by Airflow Variable if set
+                "INCREMENTAL_WATERMARK": "",
             },
         )
 
     t_extract = PythonOperator(
         task_id="extract_pg_to_s3",
         python_callable=_task_extract,
+        doc_md="""\
+### Извлечение данных из PostgreSQL в S3
+
+Запускает Spark-задачу `extract_pg_to_s3.py`, которая читает таблицы из PostgreSQL,
+выполняет денормализующие JOIN-запросы и сохраняет результат в Parquet-файлы в S3
+с партиционированием по дате снепшота.
+""",
     )
 
-    # --- Task 4: Validate Parquet ---
     t_validate_parquet = PythonOperator(
         task_id="validate_parquet",
         python_callable=validate_parquet,
+        doc_md="""\
+### Проверка Parquet-файлов в S3
+
+Подсчитывает количество Parquet-файлов и их общий размер в S3.
+Завершается ошибкой, если после извлечения файлы не найдены.
+""",
     )
 
-    # --- Task 5: Spark Load — S3 → ClickHouse ---
     def _task_load(**context):
         _run_spark_job(
             script="load_s3_to_clickhouse.py",
-            packages="",  # ClickHouse JDBC all-in-one jar pre-installed
+            packages="",
             spark_conf={
                 "spark.executor.instances": "2",
                 "spark.executor.cores": "2",
@@ -463,36 +448,57 @@ with DAG(
                 "CH_USER": CH_USER,
                 "CH_PASSWORD": CH_PASSWORD,
                 "SNAPSHOT_DATE": context["ds"],
-                "LOAD_TABLES": "",  # overridden by Airflow Variable if set
+                "LOAD_TABLES": "",
             },
         )
 
     t_load = PythonOperator(
         task_id="load_s3_to_clickhouse",
         python_callable=_task_load,
+        doc_md="""\
+### Загрузка данных из S3 в ClickHouse
+
+Запускает Spark-задачу `load_s3_to_clickhouse.py`, которая читает Parquet из S3,
+конвертирует в CSV и отправляет INSERT-запросы через HTTP-интерфейс ClickHouse.
+""",
     )
 
-    # --- Task 6: Validate ClickHouse ---
     t_validate_ch = PythonOperator(
         task_id="validate_clickhouse",
         python_callable=validate_clickhouse,
+        doc_md="""\
+### Проверка загрузки в ClickHouse
+
+Запрашивает статистику по таблицам в базе analytics: количество строк и размер.
+Позволяет убедиться, что данные загружены корректно.
+""",
     )
 
-    # --- Task 7: Cleanup old S3 ---
     t_cleanup = PythonOperator(
         task_id="cleanup_old_s3",
         python_callable=cleanup_old_s3,
-        trigger_rule="all_done",  # run even if previous tasks failed
+        trigger_rule="all_done",
+        doc_md="""\
+### Очистка старых файлов в S3
+
+Удаляет Parquet-файлы старше заданного срока хранения (по умолчанию 30 дней).
+Настраивается через переменную окружения `S3_RETENTION_DAYS`.
+Выполняется всегда, независимо от результата предыдущих задач.
+""",
     )
 
-    # --- Task 8: Summary ---
     t_summary = PythonOperator(
         task_id="send_summary",
         python_callable=send_summary,
         trigger_rule="all_done",
+        doc_md="""\
+### Итоговый отчёт
+
+Выводит сводку выполнения DAG: режим работы, количество и размер Parquet-файлов.
+Выполняется всегда, независимо от результата предыдущих задач.
+""",
     )
 
-    # Dependencies
     (
         t_check
         >> t_ddl

@@ -41,11 +41,9 @@ def get_postgres_connection():
 
 def test_connections(**context):
     import psycopg2
-    
-    logging.info("=" * 60)
-    logging.info("TESTING CONNECTIONS")
-    logging.info("=" * 60)
-    
+
+    logging.info("Testing connections")
+
     try:
         logging.info(f"Connecting to PostgreSQL: {POSTGRES_CONFIG['host']}:{POSTGRES_CONFIG['port']}")
         conn = psycopg2.connect(**POSTGRES_CONFIG)
@@ -80,35 +78,27 @@ def test_connections(**context):
     except Exception as e:
         logging.error(f"PostgreSQL connection failed: {e}")
         raise
-    
+
     try:
         logging.info(f"Connecting to S3: {S3_ENDPOINT}")
         s3 = get_s3_client()
-        
+
         try:
             s3.head_bucket(Bucket=S3_BUCKET)
             logging.info(f"S3 Bucket {S3_BUCKET} exists")
-        except:
+        except Exception:
             s3.create_bucket(Bucket=S3_BUCKET)
             logging.info(f"S3 Bucket {S3_BUCKET} created")
-        
+
     except Exception as e:
         logging.error(f"S3 connection failed: {e}")
         raise
-    
-    logging.info("=" * 60)
-    logging.info("All connections OK")
-    logging.info("=" * 60)
-    
+
     return True
 
 def get_tables(**context):
     import psycopg2
-    
-    logging.info("=" * 60)
-    logging.info("GETTING TABLES FROM POSTGRESQL")
-    logging.info("=" * 60)
-    
+
     conn = psycopg2.connect(**POSTGRES_CONFIG)
     cursor = conn.cursor()
     
@@ -177,20 +167,14 @@ def export_tables(**context):
     import psycopg2
     import pandas as pd
     import numpy as np
-    
+
     tables = context['ti'].xcom_pull(key='tables_list', task_ids='get_tables')
-    
-    logging.info("=" * 60)
-    logging.info("EXPORTING TABLES TO S3")
-    logging.info("=" * 60)
-    
+
     if not tables:
         logging.warning("No tables to export")
         context['ti'].xcom_push(key='export_results', value=[])
         return 0
-    
-    logging.info(f"Tables to export: {len(tables)}")
-    
+
     conn = psycopg2.connect(**POSTGRES_CONFIG)
     s3 = get_s3_client()
     execution_date = context['ds']
@@ -256,8 +240,7 @@ def export_tables(**context):
             if df.empty:
                 logging.warning(f"Empty table, skipping")
                 continue
-            
-            logging.info(f"Processing complex types...")
+
             df = convert_complex_types(df)
             
             buffer = BytesIO()
@@ -273,9 +256,8 @@ def export_tables(**context):
                 Key=s3_key,
                 Body=buffer.getvalue()
             )
-            
+
             logging.info(f"Uploaded to s3://{S3_BUCKET}/{s3_key}")
-            logging.info(f"Size: {file_size:,} bytes ({file_size/1024:.1f} KB)")
             
             results.append({
                 'table': full_name,
@@ -365,25 +347,53 @@ with DAG(
     catchup=False,
     tags=['postgres', 's3', 'export'],
 ) as dag:
-    
+
     t1 = PythonOperator(
         task_id='test_connections',
-        python_callable=test_connections
+        python_callable=test_connections,
+        doc_md="""\
+### Проверка подключений
+
+Устанавливает соединение с PostgreSQL и LocalStack S3.
+Проверяет доступность целевой базы, перечисляет схемы и таблицы.
+Создает S3-бакет `postgres-exports`, если он ещё не существует.
+""",
     )
-    
+
     t2 = PythonOperator(
         task_id='get_tables',
-        python_callable=get_tables
+        python_callable=get_tables,
+        doc_md="""\
+### Получение списка таблиц
+
+Запрашивает метаданные из information_schema: размер таблиц, количество колонок и приблизительное число строк.
+Исключает служебные таблицы (alembic_version, flyway_schema_history).
+Результат сохраняется в XCom для использования следующей задачей.
+""",
     )
-    
+
     t3 = PythonOperator(
         task_id='export_tables',
-        python_callable=export_tables
+        python_callable=export_tables,
+        doc_md="""\
+### Экспорт таблиц в S3
+
+Выгружает каждую таблицу из PostgreSQL (лимит 50 000 строк) и сохраняет в формате Parquet (сжатие snappy) в S3.
+Автоматически конвертирует сложные типы: UUID, Decimal, JSONB, bytes, memoryview.
+Путь в S3: `postgres/{schema}/{table}/dt={execution_date}/{table}.parquet.snappy`.
+""",
     )
-    
+
     t4 = PythonOperator(
         task_id='create_summary',
-        python_callable=create_summary
+        python_callable=create_summary,
+        doc_md="""\
+### Создание итогового отчёта
+
+Формирует manifest-файл с метаданными экспорта: количество таблиц, строк, общий размер, список файлов.
+Сохраняет manifest в S3: `manifests/postgres/dt={execution_date}/manifest.json`.
+Выводит сводку в лог Airflow.
+""",
     )
     
     t1 >> t2 >> t3 >> t4

@@ -6,7 +6,7 @@ Performs 15+ data quality checks on ClickHouse analytics tables,
 computes business metrics (revenue, retention, RFM, cohorts),
 and stores results back in ClickHouse + S3 JSON reports.
 
-No Spark needed — all via ClickHouse SQL over HTTP API.
+No Spark needed -- all via ClickHouse SQL over HTTP API.
 
 Schedule: daily at 04:00 UTC (after ETL at 02:00)
 Retry: 2 times, 3 min delay
@@ -27,9 +27,6 @@ from airflow.operators.python import PythonOperator
 from airflow.sensors.external_task import ExternalTaskSensor
 import logging
 
-# ============================================================
-# Configuration
-# ============================================================
 CH_HOST = os.getenv("CH_HOST", "clickhouse")
 CH_PORT = int(os.getenv("CH_HTTP_PORT", "8123"))
 CH_DATABASE = os.getenv("CH_DATABASE", "analytics")
@@ -53,13 +50,11 @@ DEFAULT_ARGS = {
 
 
 def _ch_url(query: str) -> str:
-    """Build ClickHouse HTTP URL with URL-encoded query."""
     base = f"http://{CH_HOST}:{CH_PORT}/"
     return f"{base}?query={urllib.parse.quote(query)}"
 
 
 def _ch_post(query: str, data: bytes = None) -> str:
-    """Execute ClickHouse query via HTTP POST."""
     auth = (CH_USER, CH_PASSWORD)
     resp = requests.post(_ch_url(query), auth=auth, data=data, timeout=30)
     resp.raise_for_status()
@@ -67,27 +62,13 @@ def _ch_post(query: str, data: bytes = None) -> str:
 
 
 def _ch_get(query: str) -> str:
-    """Execute ClickHouse query via HTTP GET."""
     auth = (CH_USER, CH_PASSWORD)
     resp = requests.get(_ch_url(query), auth=auth, timeout=30)
     resp.raise_for_status()
     return resp.text
 
 
-# ============================================================
-# Task 1: Wait for ETL DAG
-# ============================================================
-def _wait_for_etl(**context):
-    """Sensor: wait for pg_spark_ch_etl DAG to complete."""
-    # ExternalTaskSensor handles this
-    pass
-
-
-# ============================================================
-# Task 2: Data Quality Checks
-# ============================================================
 DQ_CHECKS = [
-    # (check_name, SQL query returning count of violations, threshold)
     ("users_null_email", "SELECT count() FROM analytics.users WHERE email = '' OR email IS NULL", 0),
     ("users_duplicate_email", "SELECT count() - uniq(email) FROM analytics.users WHERE email != ''", 200),
     ("products_null_name", "SELECT count() FROM analytics.products WHERE name = ''", 0),
@@ -115,7 +96,6 @@ DQ_CHECKS = [
 
 
 def run_data_quality_checks(**context):
-    """Run all DQ checks and store results."""
     results = []
     failed = []
 
@@ -126,7 +106,7 @@ def run_data_quality_checks(**context):
             try:
                 violation_count = int(float(result))
             except (ValueError, TypeError):
-                violation_count = -1  # parse error
+                violation_count = -1
 
             status = "PASS" if violation_count <= threshold else "FAIL"
             result_obj = {
@@ -172,12 +152,10 @@ def run_data_quality_checks(**context):
     if failed:
         logging.warning(f"Failed checks: {', '.join(failed)}")
 
-    # Store in XCom for downstream tasks
     ti = context["ti"]
     ti.xcom_push(key="dq_summary", value=summary)
     ti.xcom_push(key="dq_score", value=score)
 
-    # Write to ClickHouse dq_results table
     _create_dq_results_table()
     for r in results:
         _insert_dq_result(r, context["ds"])
@@ -186,7 +164,6 @@ def run_data_quality_checks(**context):
 
 
 def _create_dq_results_table():
-    """Create dq_results table if not exists."""
     _ch_post("""
         CREATE TABLE IF NOT EXISTS analytics.dq_results
         (
@@ -207,7 +184,6 @@ def _create_dq_results_table():
 
 
 def _insert_dq_result(result: dict, run_date: str):
-    """Insert single DQ result into ClickHouse."""
     row = {
         "run_date": run_date,
         "check_name": result["check"],
@@ -223,9 +199,6 @@ def _insert_dq_result(result: dict, run_date: str):
     )
 
 
-# ============================================================
-# Task 3: Business Metrics Aggregation
-# ============================================================
 BUSINESS_METRICS_QUERIES = {
     "daily_revenue": """
         SELECT
@@ -342,14 +315,12 @@ BUSINESS_METRICS_QUERIES = {
 
 
 def compute_business_metrics(**context):
-    """Run all business metric queries and store results."""
     results = {}
     snapshot_date = context["ds"]
 
     for metric_name, query in BUSINESS_METRICS_QUERIES.items():
         try:
             result_text = _ch_get(query)
-            # Parse JSON lines
             rows = []
             for line in result_text.strip().split("\n"):
                 if line.strip():
@@ -365,11 +336,9 @@ def compute_business_metrics(**context):
             results[metric_name] = []
             logging.error(f"Metrics [{metric_name}] FAILED: {e}")
 
-    # Store in XCom
     ti = context["ti"]
     ti.xcom_push(key="business_metrics", value=results)
 
-    # Write summary to ClickHouse
     _create_metrics_summary_table()
     summary_rows = []
     for metric_name, rows in results.items():
@@ -398,7 +367,6 @@ def compute_business_metrics(**context):
 
 
 def _create_metrics_summary_table():
-    """Create metrics_summary table."""
     _ch_post("""
         CREATE TABLE IF NOT EXISTS analytics.metrics_summary
         (
@@ -416,11 +384,7 @@ def _create_metrics_summary_table():
     """)
 
 
-# ============================================================
-# Task 4: Export Reports to S3
-# ============================================================
 def export_reports_to_s3(**context):
-    """Export DQ results and business metrics to S3 as JSON."""
     ti = context["ti"]
     dq_summary = ti.xcom_pull(key="dq_summary", task_ids="data_quality_checks") or {}
     business_metrics = ti.xcom_pull(key="business_metrics", task_ids="business_metrics") or {}
@@ -436,7 +400,6 @@ def export_reports_to_s3(**context):
         },
     }
 
-    # Upload to S3
     s3 = boto3.client(
         "s3",
         endpoint_url=S3_ENDPOINT,
@@ -446,7 +409,6 @@ def export_reports_to_s3(**context):
         config=Config(signature_version="s3v4"),
     )
 
-    # Ensure bucket exists
     try:
         s3.head_bucket(Bucket=S3_BUCKET)
     except Exception:
@@ -461,7 +423,6 @@ def export_reports_to_s3(**context):
     )
     logging.info(f"Report uploaded: s3://{S3_BUCKET}/{key}")
 
-    # Also upload raw metrics
     for metric_name, rows in business_metrics.items():
         if rows:
             metric_key = f"reports/daily/{snapshot_date}/{metric_name}.json"
@@ -474,11 +435,7 @@ def export_reports_to_s3(**context):
             logging.info(f"Metric uploaded: s3://{S3_BUCKET}/{metric_key}")
 
 
-# ============================================================
-# Task 5: Final Summary
-# ============================================================
 def final_summary(**context):
-    """Print final execution summary."""
     ti = context["ti"]
     dq_summary = ti.xcom_pull(key="dq_summary", task_ids="data_quality_checks") or {}
     business_metrics = ti.xcom_pull(key="business_metrics", task_ids="business_metrics") or {}
@@ -495,9 +452,6 @@ def final_summary(**context):
     logging.info("=" * 70)
 
 
-# ============================================================
-# DAG Definition
-# ============================================================
 with DAG(
     dag_id="data_quality_and_analytics",
     default_args=DEFAULT_ARGS,
@@ -509,42 +463,80 @@ with DAG(
     max_active_runs=1,
 ) as dag:
 
-    # --- Wait for ETL DAG ---
     t_wait = ExternalTaskSensor(
         task_id="wait_for_etl_dag",
         external_dag_id="pg_spark_ch_etl",
-        external_task_id=None,  # wait for entire DAG
+        external_task_id=None,
         allowed_states=["success"],
         execution_delta=timedelta(hours=2),
         timeout=3600,
         poke_interval=60,
         mode="reschedule",
+        doc_md="""\
+### Ожидание завершения ETL
+
+Датчик, который ждёт успешного завершения DAG `pg_spark_ch_etl`.
+Проверяет каждые 60 секунд, таймаут 1 час.
+Гарантирует, что аналитика запускается только после обновления данных.
+""",
     )
 
-    # --- Data Quality Checks ---
     t_dq = PythonOperator(
         task_id="data_quality_checks",
         python_callable=run_data_quality_checks,
+        doc_md="""\
+### Проверки качества данных
+
+Выполняет 15 проверок качества данных в ClickHouse:
+- NULL и дубликаты в ключевых полях (email, name, SKU)
+- Отрицательные значения (цены, итоги заказов, остатки)
+- Ошибочные рейтинги (1-5), orphan-записи
+- Заказы из будущего, старые корзины
+
+Результаты сохраняются в таблицу `dq_results` и XCom.
+""",
     )
 
-    # --- Business Metrics ---
     t_metrics = PythonOperator(
         task_id="business_metrics",
         python_callable=compute_business_metrics,
+        doc_md="""\
+### Расчёт бизнес-метрик
+
+Вычисляет 8 бизнес-метрик через SQL-запросы к ClickHouse:
+- Ежедневная выручка и средний чек
+- Топ-20 продуктов и категории
+- Распределение по способам оплаты и устройствам
+- Когортная модель удержания клиентов
+- Сводка отзывов и алерты по остаткам
+
+Результаты сохраняются в таблицу `metrics_summary`.
+""",
     )
 
-    # --- Export to S3 ---
     t_export = PythonOperator(
         task_id="export_reports_to_s3",
         python_callable=export_reports_to_s3,
+        doc_md="""\
+### Экспорт отчётов в S3
+
+Формирует единый JSON-отчёт с результатами проверок качества и бизнес-метрик.
+Сохраняет общий отчёт и отдельные файлы по каждой метрике в S3.
+Путь: `reports/daily/{date}/analytics_report.json`.
+""",
     )
 
-    # --- Final Summary ---
     t_summary = PythonOperator(
         task_id="final_summary",
         python_callable=final_summary,
         trigger_rule="all_done",
+        doc_md="""\
+### Итоговый отчёт
+
+Выводит сводку: score качества, количество пройденных проверок,
+число строк по каждой бизнес-метрике.
+Выполняется всегда, независимо от результата предыдущих задач.
+""",
     )
 
-    # Dependencies
     t_wait >> t_dq >> t_metrics >> t_export >> t_summary

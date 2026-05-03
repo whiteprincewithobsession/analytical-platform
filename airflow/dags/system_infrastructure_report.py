@@ -1,11 +1,9 @@
 """
 Airflow DAG: System Infrastructure Report
 
-Collects health & stats from ALL services (PostgreSQL, ClickHouse,
+Collects health and stats from all services (PostgreSQL, ClickHouse,
 Airflow, Spark, Kafka, Flink, LocalStack, Superset) and sends a
 formatted HTML email report.
-
-No Spark, no email-api — pure Python + HTTP requests.
 
 Schedule: weekly on Monday at 09:00 UTC
 Recipients: configured via Airflow Variable `report_recipients`
@@ -28,9 +26,6 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 import logging
 
-# ============================================================
-# Configuration — override via Airflow Variables / env
-# ============================================================
 CH_HOST = os.getenv("CH_HOST", "clickhouse")
 CH_PORT = int(os.getenv("CH_HTTP_PORT", "8123"))
 CH_USER = os.getenv("CH_USER", "admin")
@@ -77,8 +72,6 @@ def _pg_conn():
         user=PG_USER, password=PG_PASSWORD,
     )
 
-
-# ─── Service Collectors ────────────────────────────────────
 
 def _check(name, fn):
     try:
@@ -142,12 +135,10 @@ def check_postgresql():
 
 
 def check_airflow():
-    """Collect Airflow stats via subprocess CLI (reliable, no auth issues)."""
     import subprocess
 
     details = {}
 
-    # 1. Health check (HTTP, no auth needed with EXPOSE_CONFIG=true)
     try:
         r = requests.get(f"{AIRFLOW_URL}/health", timeout=10)
         h = r.json() if r.status_code == 200 else {}
@@ -157,7 +148,6 @@ def check_airflow():
     except Exception:
         details["scheduler"] = "unreachable"
 
-    # 2. DAG list via CLI subprocess
     try:
         result = subprocess.run(
             ["airflow", "dags", "list", "-o", "plain"],
@@ -165,7 +155,6 @@ def check_airflow():
         )
         if result.returncode == 0 and result.stdout.strip():
             lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
-            # First line is header, rest are DAGs
             dag_lines = lines[1:] if len(lines) > 1 else []
             details["dag_count"] = len(dag_lines)
             details["dags"] = [l.split()[0] for l in dag_lines[:15]]
@@ -175,7 +164,6 @@ def check_airflow():
         details["dag_list_error"] = str(e)[:100]
         details["dag_count"] = "unknown"
 
-    # 3. Recent DAG run stats
     try:
         result = subprocess.run(
             ["airflow", "dags", "list-runs", "-o", "table"],
@@ -183,7 +171,6 @@ def check_airflow():
         )
         if result.returncode == 0 and result.stdout.strip():
             lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
-            # Skip header lines (separator dashes)
             data_lines = [l for l in lines if "=" not in l and l]
             if data_lines:
                 success_count = sum(1 for r in data_lines if "success" in r.lower())
@@ -192,7 +179,6 @@ def check_airflow():
     except Exception:
         pass
 
-    # 4. Pool status
     try:
         result = subprocess.run(
             ["airflow", "pools", "list", "-o", "plain"],
@@ -335,8 +321,6 @@ def check_superset():
     }}
 
 
-# ─── HTML Report ──────────────────────────────────────────
-
 def _build_html(services, run_time):
     def badge(s):
         if s == "healthy":
@@ -387,19 +371,15 @@ def _build_html(services, run_time):
 </table></td></tr></table></body></html>"""
 
 
-# ─── Task: Collect & Send ─────────────────────────────────
-
 def collect_and_send(**context):
     from airflow.models import Variable
 
-    # Recipients from Airflow Variable
     try:
         recipients_str = Variable.get("report_recipients")
         recipients = [r.strip() for r in recipients_str.split(",") if r.strip()]
     except Exception:
         recipients = ["yarik_02022005@mail.ru", "yastremskiy_2014@mail.ru", "yarik02022005@mail.ru"]
 
-    # SMTP credentials from Airflow Variables (or env fallback)
     smtp_host = os.getenv("SMTP_HOST") or Variable.get("smtp_host", default_var="smtp.mail.ru")
     smtp_port = int(os.getenv("SMTP_PORT") or Variable.get("smtp_port", default_var="587"))
     smtp_user = os.getenv("SMTP_USER") or Variable.get("smtp_user", default_var="stratum-platform@mail.ru")
@@ -428,7 +408,6 @@ def collect_and_send(**context):
     # Sort: healthy first
     services.sort(key=lambda s: 0 if s["status"] == "healthy" else 1)
 
-    # Send email
     html = _build_html(services, run_time)
     healthy_count = len([s for s in services if s["status"] == "healthy"])
     total_count = len(services)
@@ -447,7 +426,6 @@ def collect_and_send(**context):
 
     logging.info(f"Email sent to {recipients}")
 
-    # Push summary to XCom
     context["ti"].xcom_push(key="summary", value={
         "run_time": run_time,
         "healthy": healthy_count,
@@ -455,8 +433,6 @@ def collect_and_send(**context):
         "recipients": recipients,
     })
 
-
-# ─── DAG ──────────────────────────────────────────────────
 
 with DAG(
     dag_id="system_infrastructure_report",
@@ -472,4 +448,15 @@ with DAG(
     t_report = PythonOperator(
         task_id="collect_and_send_report",
         python_callable=collect_and_send,
+        doc_md="""\
+### Сбор метрик и отправка отчёта
+
+Последовательно опрашивает все сервисы платформы:
+ClickHouse, PostgreSQL, Airflow, Spark, Kafka, Flink, LocalStack, Superset.
+Для каждого проверяет доступность и собирает ключевые метрики
+(версия, размер БД, количество таблиц/топиков/дашбордов и т.д.).
+
+Формирует HTML-письмо с цветовой индикацией статуса каждого сервиса
+и отправляет получателям из Airflow Variable `report_recipients`.
+""",
     )

@@ -4,14 +4,6 @@ Airflow DAG: Business KPI Dashboard
 Collects business KPIs from ClickHouse, compares with previous period,
 detects anomalies, stores results in S3, and alerts on threshold breaches.
 
-Features:
-- TaskGroup for domain-based organization (revenue, customers, products)
-- Parallel metric computation within groups
-- Airflow Variables for alert thresholds
-- Dynamic task mapping for per-category metrics
-- BranchPythonOperator for anomaly alerting
-- JSON reports to S3 with trend analysis
-
 Schedule: daily at 06:00 UTC (after ETL at 02:00 and data quality at 04:00)
 """
 
@@ -30,9 +22,6 @@ from airflow.utils.task_group import TaskGroup
 from airflow.models import Variable
 import logging
 
-# ============================================================
-# Configuration — override via Airflow Variables / env
-# ============================================================
 CH_HOST = os.getenv("CH_HOST", "clickhouse")
 CH_PORT = int(os.getenv("CH_HTTP_PORT", "8123"))
 CH_USER = os.getenv("CH_USER", "admin")
@@ -71,10 +60,6 @@ def _s3_client():
         config=Config(signature_version="s3v4"),
     )
 
-
-# ============================================================
-# KPI Query Definitions
-# ============================================================
 
 REVENUE_METRICS = {
     "daily_revenue": """
@@ -191,10 +176,6 @@ REVIEW_METRICS = {
 }
 
 
-# ============================================================
-# Task Functions
-# ============================================================
-
 def run_kpi_group(metric_group: str, queries: dict, **context):
     """Execute a group of KPI queries and store results."""
     run_date = context["ds"]
@@ -225,16 +206,13 @@ def run_kpi_group(metric_group: str, queries: dict, **context):
             }
             logging.error(f"  [{metric_group}] {metric_name}: {e}")
 
-    # Store in XCom
     context["ti"].xcom_push(key=metric_group, value=results)
     return results
 
 
 def compute_category_metrics(**context):
-    """Run per-category metrics with dynamic data."""
     run_date = context["ds"]
 
-    # Get categories from ClickHouse
     raw = _ch_query("""
         SELECT product_category, count() AS orders, sum(item_total) AS revenue,
                uniq(user_id) AS buyers
@@ -251,7 +229,6 @@ def compute_category_metrics(**context):
             except json.JSONDecodeError:
                 continue
 
-    # Store full list
     context["ti"].xcom_push(key="category_list", value=categories)
     logging.info(f"Found {len(categories)} active categories")
 
@@ -259,20 +236,17 @@ def compute_category_metrics(**context):
 
 
 def compute_trends_and_anomalies(**context):
-    """Compare current vs previous period, detect anomalies."""
     ti = context["ti"]
 
-    # Get alert thresholds from Airflow Variables
     try:
         thresholds = json.loads(Variable.get("kpi_alert_thresholds"))
     except Exception:
         thresholds = {
-            "revenue_drop_pct": 30,      # alert if revenue drops >30%
-            "orders_drop_pct": 25,       # alert if orders drop >25%
-            "min_orders_per_day": 1,     # alert if <1 order per day
+            "revenue_drop_pct": 30,
+            "orders_drop_pct": 25,
+            "min_orders_per_day": 1,
         }
 
-    # Compare last 7 days vs previous 7 days
     raw_current = _ch_query("""
         SELECT count() AS orders, sum(total_amount) AS revenue,
                uniq(user_id) AS buyers
@@ -338,7 +312,6 @@ def compute_trends_and_anomalies(**context):
 
     ti.xcom_push(key="trend_report", value=trend_report)
 
-    # Decide branch
     if alerts:
         return "send_alert_email"
     return "no_alerts_needed"
@@ -356,14 +329,12 @@ def send_alert_email(**context):
     if not alerts:
         return "No alerts triggered"
 
-    # SMTP from Airflow Variables
     smtp_host = os.getenv("SMTP_HOST") or Variable.get("smtp_host", default_var="smtp.mail.ru")
     smtp_port = int(os.getenv("SMTP_PORT") or Variable.get("smtp_port", default_var="587"))
     smtp_user = os.getenv("SMTP_USER") or Variable.get("smtp_user", default_var="stratum-platform@mail.ru")
     smtp_password = os.getenv("SMTP_PASSWORD") or Variable.get("smtp_password", default_var="")
     smtp_from = os.getenv("SMTP_FROM") or Variable.get("smtp_from", default_var=smtp_user)
 
-    # Recipients
     try:
         recipients = [r.strip() for r in Variable.get("report_recipients").split(",")]
     except Exception:
@@ -423,11 +394,9 @@ def send_alert_email(**context):
 
 
 def export_to_s3(**context):
-    """Export all KPI results to S3 as structured JSON."""
     ti = context["ti"]
     run_date = context["ds"]
 
-    # Collect all results from XCom
     all_data = {
         "run_date": run_date,
         "generated_at": datetime.now().isoformat(),
@@ -439,7 +408,6 @@ def export_to_s3(**context):
         "trends": ti.xcom_pull(key="trend_report", task_ids="compute_trends_and_anomalies") or {},
     }
 
-    # Clean data (remove raw rows for storage, keep summaries)
     for section in ["revenue", "customers", "products", "reviews"]:
         if isinstance(all_data.get(section), dict):
             for kpi_name, kpi_data in all_data[section].items():
@@ -453,7 +421,6 @@ def export_to_s3(**context):
     except Exception:
         s3.create_bucket(Bucket=S3_BUCKET)
 
-    # Full report
     full_key = f"reports/kpi/{run_date}/full_report.json"
     s3.put_object(
         Bucket=S3_BUCKET, Key=full_key,
@@ -462,7 +429,6 @@ def export_to_s3(**context):
     )
     logging.info(f"S3: {full_key}")
 
-    # Summary (lightweight, for dashboard consumption)
     summary = {
         "run_date": run_date,
         "revenue_metrics": {
@@ -482,18 +448,14 @@ def export_to_s3(**context):
     )
     logging.info(f"S3: {summary_key}")
 
-    # Set Airflow Variable with summary (for downstream consumers)
     Variable.set(f"kpi_summary_{run_date}", json.dumps(summary, default=str))
 
 
 def final_summary(**context):
-    """Print execution summary."""
     ti = context["ti"]
     trend = ti.xcom_pull(key="trend_report", task_ids="compute_trends_and_anomalies") or {}
 
-    logging.info("=" * 70)
-    logging.info("KPI DASHBOARD — FINAL SUMMARY")
-    logging.info("=" * 70)
+    logging.info(f"KPI DASHBOARD - FINAL SUMMARY")
     logging.info(f"Date: {context['ds']}")
     change = trend.get("change_pct", {})
     logging.info(f"Revenue change: {change.get('revenue', 'N/A')}%")
@@ -502,13 +464,9 @@ def final_summary(**context):
     if alerts:
         logging.warning(f"Alerts: {alerts}")
     else:
-        logging.info("No anomalies detected ✅")
-    logging.info("=" * 70)
+        logging.info("No anomalies detected")
 
 
-# ============================================================
-# DAG Definition
-# ============================================================
 with DAG(
     dag_id="business_kpi_dashboard",
     default_args=DEFAULT_ARGS,
@@ -520,84 +478,136 @@ with DAG(
     max_active_runs=1,
 ) as dag:
 
-    # ─── Revenue TaskGroup ───
     with TaskGroup("revenue_group", tooltip="Revenue metrics") as revenue_group:
         t_revenue = PythonOperator(
             task_id="run_kpi_revenue",
             python_callable=run_kpi_group,
             op_kwargs={"metric_group": "revenue", "queries": REVENUE_METRICS},
+            doc_md="""\
+### Метрики выручки
+
+Выполняет 4 запроса: ежедневная выручка, распределение по способам оплаты,
+устройствам и каналам привлечения. Период -- последние 7-14 дней.
+""",
         )
 
-    # ─── Customer TaskGroup ───
     with TaskGroup("customer_group", tooltip="Customer metrics") as customer_group:
         t_customers = PythonOperator(
             task_id="run_kpi_customers",
             python_callable=run_kpi_group,
             op_kwargs={"metric_group": "customers", "queries": CUSTOMER_METRICS},
+            doc_md="""\
+### Метрики клиентов
+
+Сегментация покупателей (VIP / Loyal / Active / Dormant),
+соотношение новых и возвращающихся клиентов, топ-10 покупателей по сумме.
+""",
         )
 
-    # ─── Product TaskGroup ───
     with TaskGroup("product_group", tooltip="Product metrics") as product_group:
         t_products = PythonOperator(
             task_id="run_kpi_products",
             python_callable=run_kpi_group,
             op_kwargs={"metric_group": "products", "queries": PRODUCT_METRICS},
+            doc_md="""\
+### Метрики продуктов
+
+Топ категорий и брендов по выручке, список товаров с низким остатком
+на складах (ниже минимального уровня).
+""",
         )
 
-    # ─── Review TaskGroup ───
     with TaskGroup("review_group", tooltip="Review metrics") as review_group:
         t_reviews = PythonOperator(
             task_id="run_kpi_reviews",
             python_callable=run_kpi_group,
             op_kwargs={"metric_group": "reviews", "queries": REVIEW_METRICS},
+            doc_md="""\
+### Метрики отзывов
+
+Распределение оценок за последний месяц, последние 20 отзывов
+с указанием продукта, рейтинга и верификации покупки.
+""",
         )
 
-    # ─── Category metrics (dynamic) ───
     t_categories = PythonOperator(
         task_id="compute_category_metrics",
         python_callable=compute_category_metrics,
+        doc_md="""\
+### Метрики по категориям
+
+Запрос активных категорий за 30 дней. Результат используется
+для дальнейшего анализа трендов и формирования отчёта.
+""",
     )
 
-    # ─── Trends & Anomalies ───
     t_trends = PythonOperator(
         task_id="compute_trends_and_anomalies",
         python_callable=compute_trends_and_anomalies,
+        doc_md="""\
+### Анализ трендов и аномалий
+
+Сравнивает показатели текущей и предыдущей недели (выручка, заказы, покупатели).
+Обнаруживает аномалии: падение выручки или заказов выше порогового значения.
+Пороги настраиваются через Airflow Variable `kpi_alert_thresholds`.
+""",
     )
 
-    # ─── Branch for alert email ───
     t_branch = BranchPythonOperator(
         task_id="check_anomalies",
         python_callable=lambda **ctx: "send_alert_email" if ctx["ti"].xcom_pull(
             key="trend_report", task_ids="compute_trends_and_anomalies"
         ).get("alerts") else "no_alerts_needed",
+        doc_md="""\
+### Ветвление по аномалиям
+
+Если анализ трендов обнаружил аномалии -- запускается отправка письма.
+Иначе ветка пропускается.
+""",
     )
 
     t_alert = PythonOperator(
         task_id="send_alert_email",
         python_callable=send_alert_email,
+        doc_md="""\
+### Отправка алерт-письма
+
+Формирует HTML-письмо с таблицей сравнения текущих и предыдущих показателей,
+процентом изменения и списком обнаруженных аномалий.
+Отправляет через SMTP получателям из Airflow Variable `report_recipients`.
+""",
     )
 
     t_no_alert = PythonOperator(
         task_id="no_alerts_needed",
         python_callable=lambda: logging.info("No anomalies, skipping alert"),
+        doc_md="Задача-заглушка для ветки без аномалий. Просто логирует отсутствие проблем.",
     )
 
-    # ─── Export ───
     t_export = PythonOperator(
         task_id="export_to_s3",
         python_callable=export_to_s3,
         trigger_rule="none_failed_min_one_success",
+        doc_md="""\
+### Экспорт KPI-отчёта в S3
+
+Сохраняет полный отчёт (все метрики, тренды, алерты) и краткую сводку
+в S3: `reports/kpi/{date}/full_report.json` и `summary.json`.
+""",
     )
 
-    # ─── Final Summary ───
     t_summary = PythonOperator(
         task_id="final_summary",
         python_callable=final_summary,
         trigger_rule="all_done",
+        doc_md="""\
+### Итоговый отчёт
+
+Выводит сводку: изменение выручки и заказов в процентах,
+список алертов (если есть). Выполняется всегда.
+""",
     )
 
-    # Dependencies
-    # All metric groups run in parallel
     [revenue_group, customer_group, product_group, review_group] >> t_categories >> t_trends >> t_branch
     t_branch >> t_alert >> t_export
     t_branch >> t_no_alert >> t_export

@@ -329,31 +329,59 @@ def create_summary(**context):
 with DAG(
     dag_id='clickhouse_to_s3',
     default_args=DEFAULT_ARGS,
-    description='ClickHouse → S3 with debugging',
+    description='ClickHouse to S3 Export',
     schedule_interval=None,
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=['clickhouse', 's3', 'export'],
 ) as dag:
-    
+
     t1 = PythonOperator(
         task_id='test_connections',
-        python_callable=test_connections
+        python_callable=test_connections,
+        doc_md="""\
+### Проверка подключений
+
+Устанавливает соединение с ClickHouse и LocalStack S3.
+Перечисляет базы данных и таблицы в схеме analytics, выводит количество строк.
+Создает S3-бакет `clickhouse-exports`, если он ещё не существует.
+""",
     )
-    
+
     t2 = PythonOperator(
         task_id='get_tables',
-        python_callable=get_tables
+        python_callable=get_tables,
+        doc_md="""\
+### Получение списка таблиц
+
+Запрашивает метаданные из system.tables: имя, движок, количество строк, размер.
+Исключает системные таблицы (начинающиеся с точки) и пустые таблицы.
+Результат сохраняется в XCom для использования следующей задачей.
+""",
     )
-    
+
     t3 = PythonOperator(
         task_id='export_tables',
-        python_callable=export_tables
+        python_callable=export_tables,
+        doc_md="""\
+### Экспорт таблиц в S3
+
+Выгружает каждую таблицу из ClickHouse (лимит 10 000 строк) и сохраняет в формате Parquet (сжатие snappy) в S3.
+Автоматически конвертирует сложные типы: Array, Tuple, Dict -- в JSON-строки.
+Путь в S3: `clickhouse/{table}/dt={execution_date}/{table}.parquet.snappy`.
+""",
     )
-    
+
     t4 = PythonOperator(
         task_id='create_summary',
-        python_callable=create_summary
+        python_callable=create_summary,
+        doc_md="""\
+### Создание итогового отчёта
+
+Формирует manifest-файл с метаданными экспорта: количество таблиц, строк, общий размер, список файлов.
+Сохраняет manifest в S3: `manifests/dt={execution_date}/manifest.json`.
+Выводит сводку в лог Airflow.
+""",
     )
     
     t1 >> t2 >> t3 >> t4

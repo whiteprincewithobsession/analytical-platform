@@ -85,22 +85,19 @@ def _run_spark_job(script: str, packages: str, spark_conf: dict, env_vars: dict)
         spark_submit,
         "--master", SPARK_MASTER,
         "--deploy-mode", "client",
-        "--packages", packages,
-        "--conf", "spark.jars.ivyPath=/tmp/.ivy2",
-        "--driver-java-options", "-Divy.default.ivy.user.dir=/tmp/.ivy2",
     ]
+    # Only add --packages if needed (we pre-install jars to avoid Ivy)
+    if packages:
+        cmd_parts.extend(["--packages", packages])
     for k, v in spark_conf.items():
         cmd_parts.extend(["--conf", f"{k}={v}"])
     cmd_parts.append(f"{SPARK_JOBS_DIR}/{script}")
 
-    # Prepend env exports to command to preserve container's original environment
+    # Use /tmp/.ivy2 as fallback — but jars are pre-installed
     env_exports = " ".join(f'{k}="{v}"' for k, v in env_vars.items())
-    
-    # Use /tmp/.ivy2 as cache — named volumes on Docker Desktop don't support chown
     cmd = (
         f"export {env_exports}; "
-        "export SPARK_IVY_HOME=/tmp/.ivy2; "
-        "mkdir -p /tmp/.ivy2/cache; "
+        "mkdir -p /tmp/.ivy2/cache 2>/dev/null; "
     ) + " ".join(cmd_parts)
 
     logging.info(f"Running in spark_master: {cmd[:200]}...")
@@ -411,7 +408,7 @@ with DAG(
     def _task_extract(**context):
         _run_spark_job(
             script="extract_pg_to_s3.py",
-            packages=SPARK_PACKAGES_EXTRACT,
+            packages="",  # PostgreSQL JDBC jar pre-installed in /opt/spark/jars/
             spark_conf={
                 "spark.executor.instances": "2",
                 "spark.executor.cores": "2",
@@ -448,7 +445,7 @@ with DAG(
     def _task_load(**context):
         _run_spark_job(
             script="load_s3_to_clickhouse.py",
-            packages=SPARK_PACKAGES_LOAD,
+            packages="",  # ClickHouse JDBC all-in-one jar pre-installed
             spark_conf={
                 "spark.executor.instances": "2",
                 "spark.executor.cores": "2",

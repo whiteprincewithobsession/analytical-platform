@@ -27,6 +27,7 @@ import requests
 import boto3
 import psycopg2
 import docker
+import urllib.parse
 from botocore.client import Config
 
 from airflow import DAG
@@ -315,7 +316,6 @@ def validate_parquet(**context):
 # ============================================================
 def validate_clickhouse(**context):
     """Проверить что данные загружены в ClickHouse."""
-    import urllib.parse
     ch_url = _get_ch_connection()
     auth = (CH_USER, CH_PASSWORD)
 

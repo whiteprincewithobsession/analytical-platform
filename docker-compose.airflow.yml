@@ -38,11 +38,13 @@ services:
         s3fs==2023.12.0
         requests==2.31.0
         clickhouse-driver==0.2.6
+        docker==7.1.0
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./spark/jobs/ddl:/opt/spark/jobs/ddl:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     entrypoint: /bin/bash
     command: >
       -c "
@@ -83,11 +85,13 @@ services:
         s3fs==2023.12.0
         requests==2.31.0
         clickhouse-driver==0.2.6
+        docker==7.1.0
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./spark/jobs/ddl:/opt/spark/jobs/ddl:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     entrypoint: /bin/bash
     command: >
       -c "
@@ -125,11 +129,13 @@ services:
         s3fs==2023.12.0
         requests==2.31.0
         clickhouse-driver==0.2.6
+        docker==7.1.0
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./spark/jobs/ddl:/opt/spark/jobs/ddl:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     entrypoint: /bin/bash
     command: >
       -c "
@@ -162,11 +168,13 @@ services:
         s3fs==2023.12.0
         requests==2.31.0
         clickhouse-driver==0.2.6
+        docker==7.1.0
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./spark/jobs/ddl:/opt/spark/jobs/ddl:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     entrypoint: /bin/bash
     command: >
       -c "

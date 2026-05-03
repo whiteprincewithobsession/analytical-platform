@@ -26,10 +26,10 @@ from datetime import datetime, timedelta
 import requests
 import boto3
 import psycopg2
+import docker
 from botocore.client import Config
 
 from airflow import DAG
-from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 import logging
 
@@ -54,10 +54,8 @@ CH_DATABASE = os.getenv("CH_DATABASE", "analytics")
 CH_USER = os.getenv("CH_USER", "admin")
 CH_PASSWORD = os.getenv("CH_PASSWORD", "admin")
 
-# Spark submit packages
 SPARK_PACKAGES_EXTRACT = "org.postgresql:postgresql:42.7.1"
 SPARK_PACKAGES_LOAD = "ru.yandex.clickhouse:clickhouse-jdbc:0.3.2-patch1,com.clickhouse:clickhouse-jdbc:0.4.6"
-
 SPARK_JOBS_DIR = "/opt/spark/jobs"
 
 DEFAULT_ARGS = {
@@ -71,6 +69,52 @@ DEFAULT_ARGS = {
     "max_retry_delay": timedelta(minutes=45),
     "execution_timeout": timedelta(hours=2),
 }
+
+
+# ============================================================
+# Spark job runner via Docker exec into spark_master
+# ============================================================
+def _run_spark_job(script: str, packages: str, spark_conf: dict, env_vars: dict):
+    """Execute spark-submit inside spark_master container via Docker API."""
+    client = docker.from_env()
+    container = client.containers.get("spark_master")
+
+    cmd_parts = [
+        "spark-submit",
+        "--master", SPARK_MASTER,
+        "--deploy-mode", "client",
+        "--packages", packages,
+    ]
+    for k, v in spark_conf.items():
+        cmd_parts.extend(["--conf", f"{k}={v}"])
+    cmd_parts.append(f"{SPARK_JOBS_DIR}/{script}")
+
+    cmd = " ".join(cmd_parts)
+    logging.info(f"Running: {cmd}")
+
+    exec_result = container.exec_run(
+        cmd=["bash", "-c", cmd],
+        environment=[f"{k}={v}" for k, v in env_vars.items()],
+        stream=True,
+        demux=True,
+    )
+
+    for chunk in exec_result[1]:
+        stdout_data, stderr_data = chunk
+        if stdout_data:
+            for line in stdout_data.decode("utf-8", errors="replace").splitlines():
+                logging.info(f"  SPARK: {line}")
+        if stderr_data:
+            for line in stderr_data.decode("utf-8", errors="replace").splitlines():
+                logging.warning(f"  SPARK: {line}")
+
+    exit_code = exec_result[0]
+    logging.info(f"spark-submit exit code: {exit_code}")
+
+    if exit_code != 0:
+        raise Exception(f"spark-submit failed with exit code {exit_code}")
+
+    return exit_code
 
 
 def _get_boto3_s3_client():
@@ -354,33 +398,34 @@ with DAG(
     )
 
     # --- Task 3: Spark Extract — PostgreSQL → S3 ---
-    t_extract = BashOperator(
+    def _task_extract(**context):
+        _run_spark_job(
+            script="extract_pg_to_s3.py",
+            packages=SPARK_PACKAGES_EXTRACT,
+            spark_conf={
+                "spark.executor.instances": "2",
+                "spark.executor.cores": "2",
+                "spark.executor.memory": "1g",
+                "spark.driver.memory": "512m",
+            },
+            env_vars={
+                "PG_HOST": PG_HOST,
+                "PG_PORT": str(PG_PORT),
+                "PG_DATABASE": PG_DATABASE,
+                "PG_USER": PG_USER,
+                "PG_PASSWORD": PG_PASSWORD,
+                "S3_ENDPOINT": S3_ENDPOINT,
+                "S3_ACCESS_KEY": S3_ACCESS_KEY,
+                "S3_SECRET_KEY": S3_SECRET_KEY,
+                "S3_BUCKET": S3_BUCKET,
+                "SNAPSHOT_DATE": context["ds"],
+                "INCREMENTAL_WATERMARK": "",  # overridden by Airflow Variable if set
+            },
+        )
+
+    t_extract = PythonOperator(
         task_id="extract_pg_to_s3",
-        bash_command=(
-            f"spark-submit "
-            f"--master {SPARK_MASTER} "
-            f"--deploy-mode client "
-            f"--packages {SPARK_PACKAGES_EXTRACT} "
-            f"--conf spark.executor.instances=2 "
-            f"--conf spark.executor.cores=2 "
-            f"--conf spark.executor.memory=1g "
-            f"--conf spark.driver.memory=512m "
-            f"{SPARK_JOBS_DIR}/extract_pg_to_s3.py"
-        ),
-        env={
-            **os.environ,
-            "PG_HOST": PG_HOST,
-            "PG_PORT": str(PG_PORT),
-            "PG_DATABASE": PG_DATABASE,
-            "PG_USER": PG_USER,
-            "PG_PASSWORD": PG_PASSWORD,
-            "S3_ENDPOINT": S3_ENDPOINT,
-            "S3_ACCESS_KEY": S3_ACCESS_KEY,
-            "S3_SECRET_KEY": S3_SECRET_KEY,
-            "S3_BUCKET": S3_BUCKET,
-            "SNAPSHOT_DATE": "{{ ds }}",
-            "INCREMENTAL_WATERMARK": "{{ var.value.get('incremental_watermark', '') }}",
-        },
+        python_callable=_task_extract,
     )
 
     # --- Task 4: Validate Parquet ---
@@ -390,34 +435,35 @@ with DAG(
     )
 
     # --- Task 5: Spark Load — S3 → ClickHouse ---
-    t_load = BashOperator(
+    def _task_load(**context):
+        _run_spark_job(
+            script="load_s3_to_clickhouse.py",
+            packages=SPARK_PACKAGES_LOAD,
+            spark_conf={
+                "spark.executor.instances": "2",
+                "spark.executor.cores": "2",
+                "spark.executor.memory": "1g",
+                "spark.driver.memory": "512m",
+                "spark.sql.adaptive.enabled": "true",
+            },
+            env_vars={
+                "S3_ENDPOINT": S3_ENDPOINT,
+                "S3_ACCESS_KEY": S3_ACCESS_KEY,
+                "S3_SECRET_KEY": S3_SECRET_KEY,
+                "S3_BUCKET": S3_BUCKET,
+                "CH_HOST": CH_HOST,
+                "CH_HTTP_PORT": str(CH_PORT),
+                "CH_DATABASE": CH_DATABASE,
+                "CH_USER": CH_USER,
+                "CH_PASSWORD": CH_PASSWORD,
+                "SNAPSHOT_DATE": context["ds"],
+                "LOAD_TABLES": "",  # overridden by Airflow Variable if set
+            },
+        )
+
+    t_load = PythonOperator(
         task_id="load_s3_to_clickhouse",
-        bash_command=(
-            f"spark-submit "
-            f"--master {SPARK_MASTER} "
-            f"--deploy-mode client "
-            f"--packages {SPARK_PACKAGES_LOAD} "
-            f"--conf spark.executor.instances=2 "
-            f"--conf spark.executor.cores=2 "
-            f"--conf spark.executor.memory=1g "
-            f"--conf spark.driver.memory=512m "
-            f"--conf spark.sql.adaptive.enabled=true "
-            f"{SPARK_JOBS_DIR}/load_s3_to_clickhouse.py"
-        ),
-        env={
-            **os.environ,
-            "S3_ENDPOINT": S3_ENDPOINT,
-            "S3_ACCESS_KEY": S3_ACCESS_KEY,
-            "S3_SECRET_KEY": S3_SECRET_KEY,
-            "S3_BUCKET": S3_BUCKET,
-            "CH_HOST": CH_HOST,
-            "CH_HTTP_PORT": str(CH_PORT),
-            "CH_DATABASE": CH_DATABASE,
-            "CH_USER": CH_USER,
-            "CH_PASSWORD": CH_PASSWORD,
-            "SNAPSHOT_DATE": "{{ ds }}",
-            "LOAD_TABLES": "{{ var.value.get('load_tables', '') }}",
-        },
+        python_callable=_task_load,
     )
 
     # --- Task 6: Validate ClickHouse ---

@@ -53,12 +53,6 @@ FLINK_URL = os.getenv("FLINK_URL", "http://flink-jobmanager:8084")
 LOCALSTACK_URL = os.getenv("LOCALSTACK_URL", "http://localstack:4566")
 SUPERSET_URL = os.getenv("SUPERSET_URL", "http://superset:8088")
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.mail.ru")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "stratum-platform@mail.ru")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
-
 DEFAULT_ARGS = {
     "owner": "data-engineering",
     "depends_on_past": False,
@@ -149,18 +143,46 @@ def check_postgresql():
 
 def check_airflow():
     session = requests.Session()
-    r = session.get(f"{AIRFLOW_URL}/login/", timeout=10)
-    import re
-    csrf = re.search(r'name="csrf_token"\s+value="([^"]+)"', r.text)
-    csrf_token = csrf.group(1) if csrf else ""
-    session.post(f"{AIRFLOW_URL}/login/", data={
-        "username": AIRFLOW_USER, "password": AIRFLOW_PASSWORD,
-        "csrf_token": csrf_token,
-    }, timeout=10)
-    r = session.get(f"{AIRFLOW_URL}/health", timeout=10)
-    h = r.json()
-    r = session.get(f"{AIRFLOW_URL}/api/v1/dags", timeout=10)
-    dags = r.json().get("dags", []) if r.status_code == 200 else []
+    # Login
+    try:
+        r = session.get(f"{AIRFLOW_URL}/login/", timeout=10)
+        import re
+        csrf = re.search(r'name="csrf_token"\s+value="([^"]+)"', r.text)
+        csrf_token = csrf.group(1) if csrf else ""
+        r2 = session.post(f"{AIRFLOW_URL}/login/", data={
+            "username": AIRFLOW_USER, "password": AIRFLOW_PASSWORD,
+            "csrf_token": csrf_token,
+        }, timeout=10)
+        if r2.status_code not in (200, 302):
+            return {"status": "error", "error": f"Login failed: {r2.status_code}", "details": {}}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "details": {}}
+
+    # Health
+    try:
+        r = session.get(f"{AIRFLOW_URL}/health", timeout=10)
+        h = r.json() if r.status_code == 200 else {}
+    except Exception:
+        h = {}
+
+    # List DAGs via API v1
+    try:
+        r = session.get(f"{AIRFLOW_URL}/api/v1/dags?limit=100", timeout=10)
+        if r.status_code == 200:
+            dags = r.json().get("dags", [])
+        elif r.status_code == 401:
+            # Try basic auth instead of session
+            r2 = requests.get(
+                f"{AIRFLOW_URL}/api/v1/dags?limit=100",
+                auth=(AIRFLOW_USER, AIRFLOW_PASSWORD),
+                timeout=10,
+            )
+            dags = r2.json().get("dags", []) if r2.status_code == 200 else []
+        else:
+            dags = []
+    except Exception:
+        dags = []
+
     return {
         "details": {
             "scheduler": h.get("scheduler", {}).get("status", "unknown"),
@@ -310,6 +332,13 @@ def collect_and_send(**context):
     except Exception:
         recipients = ["yarik_02022005@mail.ru", "yastremskiy_2014@mail.ru", "yarik02022005@mail.ru"]
 
+    # SMTP credentials from Airflow Variables (or env fallback)
+    smtp_host = os.getenv("SMTP_HOST") or Variable.get("smtp_host", default_var="smtp.mail.ru")
+    smtp_port = int(os.getenv("SMTP_PORT") or Variable.get("smtp_port", default_var="587"))
+    smtp_user = os.getenv("SMTP_USER") or Variable.get("smtp_user", default_var="stratum-platform@mail.ru")
+    smtp_password = os.getenv("SMTP_PASSWORD") or Variable.get("smtp_password", default_var="")
+    smtp_from = os.getenv("SMTP_FROM") or Variable.get("smtp_from", default_var=smtp_user)
+
     run_time = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     logging.info(f"Collecting system stats for {recipients}")
 
@@ -338,15 +367,15 @@ def collect_and_send(**context):
     total_count = len(services)
 
     msg = MIMEMultipart("alternative")
-    msg["From"] = SMTP_FROM
+    msg["From"] = smtp_from
     msg["To"] = ", ".join(recipients)
     msg["Subject"] = f"System Report: {healthy_count}/{total_count} healthy — {run_time}"
     msg.attach(MIMEText(html, "html", "utf-8"))
 
-    server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
+    server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
     server.starttls()
-    server.login(SMTP_USER, SMTP_PASSWORD)
-    server.sendmail(SMTP_FROM, recipients, msg.as_string())
+    server.login(smtp_user, smtp_password)
+    server.sendmail(smtp_from, recipients, msg.as_string())
     server.quit()
 
     logging.info(f"Email sent to {recipients}")

@@ -1,28 +1,21 @@
 """
 Spark ETL — Load: LocalStack S3 (Parquet) → ClickHouse
 
-Usage (via spark-submit):
-    spark-submit \
-      --master spark://spark-master:7077 \
-      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
-      --conf spark.sql.extensions=org.apache.spark.sql.SparkSession \
-      /opt/spark/jobs/load_s3_to_clickhouse.py
-
-Environment variables (override defaults in config/etl_config.py):
-    S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET
-    CH_HOST, CH_HTTP_PORT, CH_USER, CH_PASSWORD, CH_DATABASE
-    SNAPSHOT_DATE — partition date to load (default: today)
-    LOAD_TABLES — comma-separated list of pg_table keys to load (default: all)
+Reads Parquet from S3 using Spark, converts to CSV, POSTs to ClickHouse HTTP API.
+No JDBC needed — uses native ClickHouse HTTP interface with CSV format.
 """
 
 import os
 import sys
+import io
+import csv
+import urllib.request
+import urllib.parse
+import base64
 from datetime import date
-
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, lit
 
-# Add config dir to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "config"))
 from etl_config import (
     S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET,
@@ -31,7 +24,6 @@ from etl_config import (
     s3_key,
 )
 
-# Tables that require special handling (denormalized, different source)
 DENORM_TABLES = {
     "catalog.products_denorm": "products",
     "core.users_denorm": "users",
@@ -54,14 +46,11 @@ def build_spark_session() -> SparkSession:
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
         .config("spark.hadoop.fs.s3a.aws.credentials.provider",
                 "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
-        .config("spark.sql.adaptive.enabled", "true")
-        .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
         .getOrCreate()
     )
 
 
 def read_s3_parquet(spark, schema: str, table: str, snapshot_date: str):
-    """Read Parquet from S3 for a given table and snapshot date."""
     key = s3_key(schema, table, snapshot_date)
     s3_path = f"s3a://{S3_BUCKET}/{key}"
     try:
@@ -72,7 +61,6 @@ def read_s3_parquet(spark, schema: str, table: str, snapshot_date: str):
 
 
 def read_denorm_parquet(spark, pg_table: str, snapshot_date: str):
-    """Read denormalized parquet by alias."""
     schema = pg_table.split(".")[0]
     alias = pg_table.split(".")[1]
     key = s3_key(schema, alias, snapshot_date)
@@ -84,39 +72,70 @@ def read_denorm_parquet(spark, pg_table: str, snapshot_date: str):
         return None
 
 
-def write_to_clickhouse(df, ch_table: str):
-    """Write DataFrame to ClickHouse via JDBC."""
-    ch_url = f"jdbc:clickhouse://{CH_HOST}:{CH_HTTP_PORT}/{CH_DATABASE}"
-    (
-        df.write
-        .format("jdbc")
-        .option("url", ch_url)
-        .option("dbtable", ch_table)
-        .option("user", CH_USER)
-        .option("password", CH_PASSWORD)
-        .option("driver", "ru.yandex.clickhouse.ClickHouseDriver")
-        .mode("append")
-        .save()
+def write_to_clickhouse_http(df, ch_table: str):
+    """Write DataFrame to ClickHouse via HTTP API (CSV format)."""
+    rows = df.collect()
+    if not rows:
+        print(f"  Empty DataFrame, skipping")
+        return 0
+
+    columns = df.columns
+    schema = {f.name: str(f.dataType).lower() for f in df.schema.fields}
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(columns)
+    for row in rows:
+        row_data = []
+        for i, val in enumerate(row):
+            col_name = columns[i]
+            col_type = schema.get(col_name, "")
+            if val is None:
+                row_data.append("")
+            elif isinstance(val, bool):
+                row_data.append("1" if val else "0")
+            elif hasattr(val, "strftime"):
+                # DateTime/Date — format without microseconds
+                if hasattr(val, "microsecond") and val.microsecond:
+                    row_data.append(val.strftime("%Y-%m-%d %H:%M:%S"))
+                elif hasattr(val, "year"):
+                    row_data.append(val.strftime("%Y-%m-%d"))
+                else:
+                    row_data.append(str(val))
+            elif isinstance(val, (list, dict)):
+                row_data.append(str(val))
+            else:
+                row_data.append(str(val))
+        writer.writerow(row_data)
+
+    csv_data = buffer.getvalue()
+    buffer.close()
+
+    # POST to ClickHouse HTTP using urllib
+    query = f"INSERT INTO {CH_DATABASE}.{ch_table} FORMAT CSVWithNames"
+    ch_url = f"http://{CH_HOST}:{CH_HTTP_PORT}/?query={urllib.parse.quote(query)}"
+
+    auth_str = base64.b64encode(f"{CH_USER}:{CH_PASSWORD}".encode()).decode()
+
+    req = urllib.request.Request(
+        ch_url,
+        data=csv_data.encode("utf-8"),
+        headers={
+            "Content-Type": "application/octet-stream",
+            "Authorization": f"Basic {auth_str}",
+        },
+        method="POST",
     )
 
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            if resp.status != 200:
+                raise Exception(f"HTTP {resp.status}: {resp.read().decode()}")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode() if e.fp else str(e)
+        raise Exception(f"ClickHouse HTTP {e.code}: {body}")
 
-def write_to_clickhouse_native(df, ch_table: str):
-    """
-    Alternative: write via native ClickHouse JDBC bridge.
-    For Spark 3.5+ with clickhouse-jdbc driver.
-    """
-    ch_url = f"jdbc:clickhouse://{CH_HOST}:9000/{CH_DATABASE}"
-    (
-        df.write
-        .format("jdbc")
-        .option("url", ch_url)
-        .option("dbtable", ch_table)
-        .option("user", CH_USER)
-        .option("password", CH_PASSWORD)
-        .option("driver", "com.clickhouse.jdbc.ClickHouseDriver")
-        .mode("append")
-        .save()
-    )
+    return len(rows)
 
 
 def load_standard_tables(spark, snapshot_date: str, table_filter: list = None):
@@ -125,7 +144,6 @@ def load_standard_tables(spark, snapshot_date: str, table_filter: list = None):
     for pg_table, ch_table in PG_TO_CH.items():
         if table_filter and pg_table not in table_filter:
             continue
-        # Skip denorm tables — handled separately
         if pg_table in DENORM_TABLES:
             continue
 
@@ -136,18 +154,16 @@ def load_standard_tables(spark, snapshot_date: str, table_filter: list = None):
                 print(f"[SKIP] {pg_table} — no parquet data")
                 continue
 
-            # Add snapshot_date column
             df = df.withColumn("snapshot_date", lit(snapshot_date).cast("date"))
-
             count = df.count()
             if count == 0:
                 print(f"[SKIP] {pg_table} → {ch_table} — empty")
                 continue
 
             print(f"[LOAD] {pg_table} → {ch_table} ({count} rows)")
-            write_to_clickhouse(df, ch_table)
-            print(f"[OK] {pg_table} → {ch_table}")
-            results.append({"pg_table": pg_table, "ch_table": ch_table, "rows": count, "mode": "standard"})
+            inserted = write_to_clickhouse_http(df, ch_table)
+            print(f"[OK] {pg_table} → {ch_table} ({inserted} rows)")
+            results.append({"pg_table": pg_table, "ch_table": ch_table, "rows": inserted, "mode": "standard"})
         except Exception as e:
             print(f"[FAIL] {pg_table} → {ch_table}: {e}")
             import traceback
@@ -157,7 +173,7 @@ def load_standard_tables(spark, snapshot_date: str, table_filter: list = None):
 
 
 def load_denorm_tables(spark, snapshot_date: str, table_filter: list = None):
-    """Load denormalized tables (products_denorm → products, etc.)."""
+    """Load denormalized tables."""
     results = []
     for pg_table, ch_table in DENORM_TABLES.items():
         if table_filter and pg_table not in table_filter:
@@ -169,18 +185,16 @@ def load_denorm_tables(spark, snapshot_date: str, table_filter: list = None):
                 print(f"[SKIP] {pg_table} — no parquet data")
                 continue
 
-            # Add snapshot_date column
             df = df.withColumn("snapshot_date", lit(snapshot_date).cast("date"))
-
             count = df.count()
             if count == 0:
                 print(f"[SKIP] {pg_table} → {ch_table} — empty")
                 continue
 
             print(f"[LOAD] {pg_table} → {ch_table} ({count} rows)")
-            write_to_clickhouse(df, ch_table)
-            print(f"[OK] {pg_table} → {ch_table}")
-            results.append({"pg_table": pg_table, "ch_table": ch_table, "rows": count, "mode": "denorm"})
+            inserted = write_to_clickhouse_http(df, ch_table)
+            print(f"[OK] {pg_table} → {ch_table} ({inserted} rows)")
+            results.append({"pg_table": pg_table, "ch_table": ch_table, "rows": inserted, "mode": "denorm"})
         except Exception as e:
             print(f"[FAIL] {pg_table} → {ch_table}: {e}")
             import traceback

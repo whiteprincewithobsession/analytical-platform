@@ -318,10 +318,10 @@ def validate_clickhouse(**context):
     auth = (CH_USER, CH_PASSWORD)
 
     query = """
-    SELECT database, name, rows, formatReadableSize(bytes_on_disk)
+    SELECT database, name, total_rows, formatReadableSize(bytes_on_disk)
     FROM system.tables
     WHERE database = 'analytics'
-    ORDER BY rows DESC
+    ORDER BY total_rows DESC
     """
     resp = requests.post(f"{ch_url}/?query={query}", auth=auth)
     resp.raise_for_status()

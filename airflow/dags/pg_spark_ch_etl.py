@@ -51,7 +51,7 @@ PG_PASSWORD = os.getenv("PG_PASSWORD", "admin")
 CH_HOST = os.getenv("CH_HOST", "clickhouse")
 CH_PORT = int(os.getenv("CH_HTTP_PORT", "8123"))
 CH_DATABASE = os.getenv("CH_DATABASE", "analytics")
-CH_USER = os.getenv("CH_USER", "default")
+CH_USER = os.getenv("CH_USER", "admin")
 CH_PASSWORD = os.getenv("CH_PASSWORD", "admin")
 
 # Spark submit packages

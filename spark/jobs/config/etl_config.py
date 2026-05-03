@@ -25,7 +25,7 @@ S3_BUCKET = "etl-staging"
 
 CH_HOST = "clickhouse"
 CH_HTTP_PORT = 8123
-CH_USER = "default"
+CH_USER = "admin"
 CH_PASSWORD = "admin"
 CH_DATABASE = "analytics"
 

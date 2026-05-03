@@ -79,8 +79,10 @@ def _run_spark_job(script: str, packages: str, spark_conf: dict, env_vars: dict)
     client = docker.from_env()
     container = client.containers.get("spark_master")
 
+    spark_submit = "/opt/spark/bin/spark-submit"
+
     cmd_parts = [
-        "spark-submit",
+        spark_submit,
         "--master", SPARK_MASTER,
         "--deploy-mode", "client",
         "--packages", packages,
@@ -89,26 +91,26 @@ def _run_spark_job(script: str, packages: str, spark_conf: dict, env_vars: dict)
         cmd_parts.extend(["--conf", f"{k}={v}"])
     cmd_parts.append(f"{SPARK_JOBS_DIR}/{script}")
 
-    cmd = " ".join(cmd_parts)
-    logging.info(f"Running: {cmd}")
+    # Prepend env exports to command to preserve container's original environment
+    env_exports = " ".join(f'{k}="{v}"' for k, v in env_vars.items())
+    cmd = f"export {env_exports}; " + " ".join(cmd_parts)
+
+    logging.info(f"Running in spark_master: {cmd[:200]}...")
 
     exec_result = container.exec_run(
-        cmd=["bash", "-c", cmd],
-        environment=[f"{k}={v}" for k, v in env_vars.items()],
-        stream=True,
+        cmd=["sh", "-c", cmd],
         demux=True,
     )
 
-    for chunk in exec_result[1]:
-        stdout_data, stderr_data = chunk
-        if stdout_data:
-            for line in stdout_data.decode("utf-8", errors="replace").splitlines():
-                logging.info(f"  SPARK: {line}")
-        if stderr_data:
-            for line in stderr_data.decode("utf-8", errors="replace").splitlines():
-                logging.warning(f"  SPARK: {line}")
-
     exit_code = exec_result[0]
+    stdout_data = exec_result[1][0] or b""
+    stderr_data = exec_result[1][1] or b""
+
+    for line in stdout_data.decode("utf-8", errors="replace").splitlines():
+        logging.info(f"  SPARK: {line}")
+    for line in stderr_data.decode("utf-8", errors="replace").splitlines():
+        logging.warning(f"  SPARK: {line}")
+
     logging.info(f"spark-submit exit code: {exit_code}")
 
     if exit_code != 0:

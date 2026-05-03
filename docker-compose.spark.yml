@@ -11,13 +11,39 @@ services:
     volumes:
       - ./spark/jobs:/opt/spark/jobs
       - ./spark/logs:/opt/spark/logs
+      - ./spark/work:/opt/spark/work
     environment:
       - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_EXECUTOR_CORES=2
+      - SPARK_EXECUTOR_MEMORY=1g
+      # S3 / LocalStack
+      - S3_ENDPOINT=http://localstack:4566
+      - S3_ACCESS_KEY=test
+      - S3_SECRET_KEY=test
+      - S3_BUCKET=etl-staging
+      # PostgreSQL
+      - PG_HOST=retail_container
+      - PG_PORT=5432
+      - PG_DATABASE=omni_retail_core
+      - PG_USER=admin
+      - PG_PASSWORD=admin
+      # ClickHouse
+      - CH_HOST=clickhouse
+      - CH_HTTP_PORT=8123
+      - CH_USER=default
+      - CH_PASSWORD=
+      - CH_DATABASE=analytics
     restart: unless-stopped
     networks:
       retail_network:
         aliases:
           - spark-master
+    depends_on:
+      - localstack-ready  # ждёт готовности LocalStack
 
   spark-worker-1:
     image: apache/spark:3.5.1
@@ -27,6 +53,27 @@ services:
       - "0.0.0.0:8082:8080"
     environment:
       - SPARK_WORKER_WEBUI_PORT=8080
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_EXECUTOR_CORES=2
+      - SPARK_EXECUTOR_MEMORY=1g
+      # S3 / LocalStack
+      - S3_ENDPOINT=http://localstack:4566
+      - S3_ACCESS_KEY=test
+      - S3_SECRET_KEY=test
+      - S3_BUCKET=etl-staging
+      # PostgreSQL
+      - PG_HOST=retail_container
+      - PG_PORT=5432
+      - PG_DATABASE=omni_retail_core
+      - PG_USER=admin
+      - PG_PASSWORD=admin
+      # ClickHouse
+      - CH_HOST=clickhouse
+      - CH_HTTP_PORT=8123
+      - CH_USER=default
+      - CH_PASSWORD=
+      - CH_DATABASE=analytics
     depends_on:
       - spark-master
     restart: unless-stopped
@@ -43,6 +90,27 @@ services:
       - "0.0.0.0:8083:8080"
     environment:
       - SPARK_WORKER_WEBUI_PORT=8080
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_EXECUTOR_CORES=2
+      - SPARK_EXECUTOR_MEMORY=1g
+      # S3 / LocalStack
+      - S3_ENDPOINT=http://localstack:4566
+      - S3_ACCESS_KEY=test
+      - S3_SECRET_KEY=test
+      - S3_BUCKET=etl-staging
+      # PostgreSQL
+      - PG_HOST=retail_container
+      - PG_PORT=5432
+      - PG_DATABASE=omni_retail_core
+      - PG_USER=admin
+      - PG_PASSWORD=admin
+      # ClickHouse
+      - CH_HOST=clickhouse
+      - CH_HTTP_PORT=8123
+      - CH_USER=default
+      - CH_PASSWORD=
+      - CH_DATABASE=analytics
     depends_on:
       - spark-master
     restart: unless-stopped
@@ -50,6 +118,31 @@ services:
       retail_network:
         aliases:
           - spark_worker_2
+
+  # Helper: waits for LocalStack to be ready, then creates S3 bucket
+  localstack-ready:
+    image: amazon/aws-cli:latest
+    container_name: localstack_bucket_creator
+    entrypoint: ["sh", "-c"]
+    command: >
+      "
+      echo 'Waiting for LocalStack...' &&
+      until aws s3 ls --endpoint-url http://localstack:4566 --no-sign-request 2>/dev/null; do
+        sleep 5
+      done &&
+      echo 'LocalStack is ready, creating bucket...' &&
+      aws s3api create-bucket --bucket etl-staging --endpoint-url http://localstack:4566 --no-sign-request 2>/dev/null || true &&
+      aws s3api create-bucket --bucket postgres-exports --endpoint-url http://localstack:4566 --no-sign-request 2>/dev/null || true &&
+      aws s3api create-bucket --bucket clickhouse-exports --endpoint-url http://localstack:4566 --no-sign-request 2>/dev/null || true &&
+      echo 'Buckets created.'
+      "
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    networks:
+      - retail_network
+    restart: "no"
 
 
 networks:

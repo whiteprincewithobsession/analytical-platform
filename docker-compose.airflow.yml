@@ -31,20 +31,27 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: >
         apache-airflow-providers-postgres==5.7.1
         apache-airflow-providers-amazon==8.13.0
+        apache-airflow-providers-apache-spark==4.11.3
         boto3==1.29.7
         psycopg2-binary==2.9.9
         pandas==2.1.3
         pyarrow==14.0.1
         s3fs==2023.12.0
+        requests==2.31.0
+        clickhouse-driver==0.2.6
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./spark/jobs/ddl:/opt/spark/jobs/ddl:ro
     entrypoint: /bin/bash
     command: >
       -c "
       airflow db migrate &&
       airflow users create --username ${AIRFLOW_WWW_USERNAME} --password ${AIRFLOW_WWW_PASSWORD} --firstname Admin --lastname Admin --role Admin --email admin@example.com || true &&
+      airflow connections add 'spark_default' --conn-type 'spark' --conn-host 'spark://spark-master' --conn-port '7077' --conn-extra '{\"deploy-mode\": \"client\"}' 2>/dev/null || true &&
+      airflow variables set incremental_watermark '' 2>/dev/null || true &&
+      airflow variables set load_tables '' 2>/dev/null || true &&
       echo 'Airflow DB initialized and user created'
       "
     depends_on:
@@ -70,15 +77,19 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: >
         apache-airflow-providers-postgres==5.7.1
         apache-airflow-providers-amazon==8.13.0
+        apache-airflow-providers-apache-spark==4.11.3
         boto3==1.29.7
         psycopg2-binary==2.9.9
         pandas==2.1.3
         pyarrow==14.0.1
         s3fs==2023.12.0
+        requests==2.31.0
+        clickhouse-driver==0.2.6
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./spark/jobs/ddl:/opt/spark/jobs/ddl:ro
     entrypoint: /bin/bash
     command: >
       -c "
@@ -108,15 +119,19 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: >
         apache-airflow-providers-postgres==5.7.1
         apache-airflow-providers-amazon==8.13.0
+        apache-airflow-providers-apache-spark==4.11.3
         boto3==1.29.7
         psycopg2-binary==2.9.9
         pandas==2.1.3
         pyarrow==14.0.1
         s3fs==2023.12.0
+        requests==2.31.0
+        clickhouse-driver==0.2.6
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./spark/jobs/ddl:/opt/spark/jobs/ddl:ro
     entrypoint: /bin/bash
     command: >
       -c "
@@ -141,15 +156,19 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: >
         apache-airflow-providers-postgres==5.7.1
         apache-airflow-providers-amazon==8.13.0
+        apache-airflow-providers-apache-spark==4.11.3
         boto3==1.29.7
         psycopg2-binary==2.9.9
         pandas==2.1.3
         pyarrow==14.0.1
         s3fs==2023.12.0
+        requests==2.31.0
+        clickhouse-driver==0.2.6
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./spark/jobs/ddl:/opt/spark/jobs/ddl:ro
     entrypoint: /bin/bash
     command: >
       -c "

@@ -87,6 +87,7 @@ def _run_spark_job(script: str, packages: str, spark_conf: dict, env_vars: dict)
         "--deploy-mode", "client",
         "--packages", packages,
         "--conf", "spark.jars.ivyPath=/tmp/.ivy2",
+        "--driver-java-options", "-Divy.default.ivy.user.dir=/tmp/.ivy2",
     ]
     for k, v in spark_conf.items():
         cmd_parts.extend(["--conf", f"{k}={v}"])

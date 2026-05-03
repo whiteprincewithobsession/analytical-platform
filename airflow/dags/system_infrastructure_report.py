@@ -142,48 +142,75 @@ def check_postgresql():
 
 
 def check_airflow():
-    # Health endpoint is public in Airflow (EXPOSE_CONFIG=true)
+    """Collect Airflow stats via subprocess CLI (reliable, no auth issues)."""
+    import subprocess
+
+    details = {}
+
+    # 1. Health check (HTTP, no auth needed with EXPOSE_CONFIG=true)
     try:
         r = requests.get(f"{AIRFLOW_URL}/health", timeout=10)
         h = r.json() if r.status_code == 200 else {}
+        details["scheduler"] = h.get("scheduler", {}).get("status", "unknown")
+        details["metadatabase"] = h.get("metadatabase", {}).get("status", "unknown")
+        details["triggerer"] = h.get("triggerer", {}).get("status", "unknown")
     except Exception:
-        h = {}
+        details["scheduler"] = "unreachable"
 
-    # List DAGs — try basic auth first (Airflow REST API supports it)
-    dags = []
+    # 2. DAG list via CLI subprocess
     try:
-        r = requests.get(
-            f"{AIRFLOW_URL}/api/v1/dags?limit=100",
-            auth=(AIRFLOW_USER, AIRFLOW_PASSWORD),
-            timeout=10,
+        result = subprocess.run(
+            ["airflow", "dags", "list", "-o", "plain"],
+            capture_output=True, text=True, timeout=30,
         )
-        if r.status_code == 200:
-            dags = r.json().get("dags", [])
-        else:
-            # Fallback: session-based login
-            session = requests.Session()
-            r = session.get(f"{AIRFLOW_URL}/login/", timeout=10)
-            import re
-            csrf = re.search(r'name="csrf_token"\s+value="([^"]+)"', r.text)
-            csrf_token = csrf.group(1) if csrf else ""
-            session.post(f"{AIRFLOW_URL}/login/", data={
-                "username": AIRFLOW_USER, "password": AIRFLOW_PASSWORD,
-                "csrf_token": csrf_token,
-            }, timeout=10)
-            r = session.get(f"{AIRFLOW_URL}/api/v1/dags?limit=100", timeout=10)
-            if r.status_code == 200:
-                dags = r.json().get("dags", [])
+        if result.returncode == 0 and result.stdout.strip():
+            dag_lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+            details["dag_count"] = len(dag_lines)
+            details["dags"] = dag_lines[:15]  # first 15
+    except Exception as e:
+        details["dag_list_error"] = str(e)[:100]
+        # Fallback: count from DB
+        try:
+            result = subprocess.run(
+                ["airflow", "dags", "list", "-o", "table"],
+                capture_output=True, text=True, timeout=30,
+            )
+            # Count non-header lines
+            lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip() and "=" not in l]
+            details["dag_count"] = len(lines)
+        except Exception:
+            details["dag_count"] = "unknown"
+
+    # 3. Recent DAG run stats
+    try:
+        result = subprocess.run(
+            ["airflow", "dags", "list-runs", "-o", "plain", "--limit", "20"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            runs = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+            success_count = sum(1 for r in runs if "success" in r.lower())
+            failed_count = sum(1 for r in runs if "failed" in r.lower())
+            details["recent_runs_total"] = len(runs)
+            details["recent_success"] = success_count
+            details["recent_failed"] = failed_count
     except Exception:
         pass
 
-    return {
-        "details": {
-            "scheduler": h.get("scheduler", {}).get("status", "unknown"),
-            "metadatabase": h.get("metadatabase", {}).get("status", "unknown"),
-            "dag_count": len(dags),
-            "dags": [{"id": d["dag_id"], "paused": d["is_paused"]} for d in dags],
-        }
-    }
+    # 4. Pool status
+    try:
+        result = subprocess.run(
+            ["airflow", "pools", "list", "-o", "plain"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            pools = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+            details["pools"] = len(pools)
+    except Exception:
+        pass
+
+    status = "healthy" if details.get("scheduler") == "healthy" else "degraded"
+    return {"status": status, "details": details}
 
 
 def check_spark():

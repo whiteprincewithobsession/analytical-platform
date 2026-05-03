@@ -7,6 +7,41 @@ services:
     ports:
       - "0.0.0.0:3000:80"
     restart: unless-stopped
+    depends_on:
+      - email-api
+    networks:
+      - retail_network
+
+  email-api:
+    build: ./email-api
+    container_name: retail_email_api
+    environment:
+      - SMTP_HOST=smtp.mail.ru
+      - SMTP_PORT=587
+      - SMTP_USER=stratum-platform@mail.ru
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SUPERSET_URL=http://superset:8088
+      - SUPERSET_USER=${SUPERSET_USER:-admin}
+      - SUPERSET_PASSWORD=${SUPERSET_PASSWORD:-admin}
+      - REPORT_RECIPIENTS=yarik_02022005@mail.ru,yastremskiy_2014@mail.ru,yarik02022005@mail.ru
+      # Service connections for system report
+      - CH_HOST=clickhouse
+      - CH_HTTP_PORT=8123
+      - CH_USER=admin
+      - CH_PASSWORD=admin
+      - PG_HOST=retail_container
+      - PG_PORT=5432
+      - PG_USER=admin
+      - PG_PASSWORD=admin
+      - PG_DATABASE=omni_retail_core
+      - AIRFLOW_URL=http://airflow_webserver:8080
+      - AIRFLOW_USER=airflow
+      - AIRFLOW_PASSWORD=airflow
+      - SPARK_MASTER_URL=http://spark-master:8080
+      - KAFKA_UI_URL=http://kafka-ui:8090
+      - FLINK_URL=http://flink-jobmanager:8084
+      - LOCALSTACK_URL=http://localstack:4566
+    restart: unless-stopped
     networks:
       - retail_network
 

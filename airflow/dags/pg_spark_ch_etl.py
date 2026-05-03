@@ -337,21 +337,23 @@ def validate_clickhouse(**context):
 # ============================================================
 def cleanup_old_s3(**context):
     """Удалить S3 партиции старше TTL (по умолчанию 30 дней)."""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     s3 = _get_boto3_s3_client()
     retention_days = int(os.getenv("S3_RETENTION_DAYS", "30"))
-    cutoff = datetime.now() - timedelta(days=retention_days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
 
     resp = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix="pg/")
     objects = resp.get("Contents", [])
 
     deleted = 0
     for obj in objects:
-        if obj["LastModified"].replace(tzinfo=None) < cutoff:
+        last_mod = obj["LastModified"]
+        if last_mod.tzinfo is None:
+            last_mod = last_mod.replace(tzinfo=timezone.utc)
+        if last_mod < cutoff:
             s3.delete_object(Bucket=S3_BUCKET, Key=obj["Key"])
             deleted += 1
-            logging.info(f"Deleted: {obj['Key']} (age: {datetime.now() - obj['LastModified'].replace(tzinfo=None)})")
 
     logging.info(f"Cleanup: deleted {deleted} objects older than {retention_days} days")
 

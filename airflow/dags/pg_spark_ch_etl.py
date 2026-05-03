@@ -86,6 +86,7 @@ def _run_spark_job(script: str, packages: str, spark_conf: dict, env_vars: dict)
         "--master", SPARK_MASTER,
         "--deploy-mode", "client",
         "--packages", packages,
+        "--conf", "spark.jars.ivyPath=/tmp/.ivy2",
     ]
     for k, v in spark_conf.items():
         cmd_parts.extend(["--conf", f"{k}={v}"])
@@ -93,7 +94,13 @@ def _run_spark_job(script: str, packages: str, spark_conf: dict, env_vars: dict)
 
     # Prepend env exports to command to preserve container's original environment
     env_exports = " ".join(f'{k}="{v}"' for k, v in env_vars.items())
-    cmd = f"export {env_exports}; " + " ".join(cmd_parts)
+    
+    # Use /tmp/.ivy2 as cache — named volumes on Docker Desktop don't support chown
+    cmd = (
+        f"export {env_exports}; "
+        "export SPARK_IVY_HOME=/tmp/.ivy2; "
+        "mkdir -p /tmp/.ivy2/cache; "
+    ) + " ".join(cmd_parts)
 
     logging.info(f"Running in spark_master: {cmd[:200]}...")
 

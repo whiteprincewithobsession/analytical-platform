@@ -319,7 +319,7 @@ def validate_clickhouse(**context):
     ch_url = _get_ch_connection()
     auth = (CH_USER, CH_PASSWORD)
 
-    query = "SELECT database, name, total_rows, formatReadableSize(bytes_on_disk) FROM system.tables WHERE database = 'analytics' ORDER BY total_rows DESC"
+    query = "SELECT database, name, total_rows, formatReadableSize(total_bytes) FROM system.tables WHERE database = 'analytics' ORDER BY total_rows DESC"
     resp = requests.post(f"{ch_url}/?query={urllib.parse.quote(query)}", auth=auth)
     resp.raise_for_status()
     lines = resp.text.strip().split("\n")

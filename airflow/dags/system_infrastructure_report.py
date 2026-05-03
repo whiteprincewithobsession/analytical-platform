@@ -142,46 +142,39 @@ def check_postgresql():
 
 
 def check_airflow():
-    session = requests.Session()
-    # Login
+    # Health endpoint is public in Airflow (EXPOSE_CONFIG=true)
     try:
-        r = session.get(f"{AIRFLOW_URL}/login/", timeout=10)
-        import re
-        csrf = re.search(r'name="csrf_token"\s+value="([^"]+)"', r.text)
-        csrf_token = csrf.group(1) if csrf else ""
-        r2 = session.post(f"{AIRFLOW_URL}/login/", data={
-            "username": AIRFLOW_USER, "password": AIRFLOW_PASSWORD,
-            "csrf_token": csrf_token,
-        }, timeout=10)
-        if r2.status_code not in (200, 302):
-            return {"status": "error", "error": f"Login failed: {r2.status_code}", "details": {}}
-    except Exception as e:
-        return {"status": "error", "error": str(e), "details": {}}
-
-    # Health
-    try:
-        r = session.get(f"{AIRFLOW_URL}/health", timeout=10)
+        r = requests.get(f"{AIRFLOW_URL}/health", timeout=10)
         h = r.json() if r.status_code == 200 else {}
     except Exception:
         h = {}
 
-    # List DAGs via API v1
+    # List DAGs — try basic auth first (Airflow REST API supports it)
+    dags = []
     try:
-        r = session.get(f"{AIRFLOW_URL}/api/v1/dags?limit=100", timeout=10)
+        r = requests.get(
+            f"{AIRFLOW_URL}/api/v1/dags?limit=100",
+            auth=(AIRFLOW_USER, AIRFLOW_PASSWORD),
+            timeout=10,
+        )
         if r.status_code == 200:
             dags = r.json().get("dags", [])
-        elif r.status_code == 401:
-            # Try basic auth instead of session
-            r2 = requests.get(
-                f"{AIRFLOW_URL}/api/v1/dags?limit=100",
-                auth=(AIRFLOW_USER, AIRFLOW_PASSWORD),
-                timeout=10,
-            )
-            dags = r2.json().get("dags", []) if r2.status_code == 200 else []
         else:
-            dags = []
+            # Fallback: session-based login
+            session = requests.Session()
+            r = session.get(f"{AIRFLOW_URL}/login/", timeout=10)
+            import re
+            csrf = re.search(r'name="csrf_token"\s+value="([^"]+)"', r.text)
+            csrf_token = csrf.group(1) if csrf else ""
+            session.post(f"{AIRFLOW_URL}/login/", data={
+                "username": AIRFLOW_USER, "password": AIRFLOW_PASSWORD,
+                "csrf_token": csrf_token,
+            }, timeout=10)
+            r = session.get(f"{AIRFLOW_URL}/api/v1/dags?limit=100", timeout=10)
+            if r.status_code == 200:
+                dags = r.json().get("dags", [])
     except Exception:
-        dags = []
+        pass
 
     return {
         "details": {

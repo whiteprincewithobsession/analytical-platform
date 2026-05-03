@@ -29,9 +29,8 @@ import psycopg2
 from botocore.client import Config
 
 from airflow import DAG
-from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.hooks.base import BaseHook
 import logging
 
 # ============================================================
@@ -355,19 +354,21 @@ with DAG(
     )
 
     # --- Task 3: Spark Extract — PostgreSQL → S3 ---
-    t_extract = SparkSubmitOperator(
+    t_extract = BashOperator(
         task_id="extract_pg_to_s3",
-        conn_id="spark_default",  # настраивается в Airflow Connections
-        application=f"{SPARK_JOBS_DIR}/extract_pg_to_s3.py",
-        packages=SPARK_PACKAGES_EXTRACT,
-        conf={
-            "spark.submit.deployMode": "client",
-            "spark.executor.instances": "2",
-            "spark.executor.cores": "2",
-            "spark.executor.memory": "1g",
-            "spark.driver.memory": "512m",
-        },
-        env_vars={
+        bash_command=(
+            f"spark-submit "
+            f"--master {SPARK_MASTER} "
+            f"--deploy-mode client "
+            f"--packages {SPARK_PACKAGES_EXTRACT} "
+            f"--conf spark.executor.instances=2 "
+            f"--conf spark.executor.cores=2 "
+            f"--conf spark.executor.memory=1g "
+            f"--conf spark.driver.memory=512m "
+            f"{SPARK_JOBS_DIR}/extract_pg_to_s3.py"
+        ),
+        env={
+            **os.environ,
             "PG_HOST": PG_HOST,
             "PG_PORT": str(PG_PORT),
             "PG_DATABASE": PG_DATABASE,
@@ -380,8 +381,6 @@ with DAG(
             "SNAPSHOT_DATE": "{{ ds }}",
             "INCREMENTAL_WATERMARK": "{{ var.value.get('incremental_watermark', '') }}",
         },
-        application_args=["--verbose"],
-        verbose=True,
     )
 
     # --- Task 4: Validate Parquet ---
@@ -391,20 +390,22 @@ with DAG(
     )
 
     # --- Task 5: Spark Load — S3 → ClickHouse ---
-    t_load = SparkSubmitOperator(
+    t_load = BashOperator(
         task_id="load_s3_to_clickhouse",
-        conn_id="spark_default",
-        application=f"{SPARK_JOBS_DIR}/load_s3_to_clickhouse.py",
-        packages=SPARK_PACKAGES_LOAD,
-        conf={
-            "spark.submit.deployMode": "client",
-            "spark.executor.instances": "2",
-            "spark.executor.cores": "2",
-            "spark.executor.memory": "1g",
-            "spark.driver.memory": "512m",
-            "spark.sql.adaptive.enabled": "true",
-        },
-        env_vars={
+        bash_command=(
+            f"spark-submit "
+            f"--master {SPARK_MASTER} "
+            f"--deploy-mode client "
+            f"--packages {SPARK_PACKAGES_LOAD} "
+            f"--conf spark.executor.instances=2 "
+            f"--conf spark.executor.cores=2 "
+            f"--conf spark.executor.memory=1g "
+            f"--conf spark.driver.memory=512m "
+            f"--conf spark.sql.adaptive.enabled=true "
+            f"{SPARK_JOBS_DIR}/load_s3_to_clickhouse.py"
+        ),
+        env={
+            **os.environ,
             "S3_ENDPOINT": S3_ENDPOINT,
             "S3_ACCESS_KEY": S3_ACCESS_KEY,
             "S3_SECRET_KEY": S3_SECRET_KEY,
@@ -417,8 +418,6 @@ with DAG(
             "SNAPSHOT_DATE": "{{ ds }}",
             "LOAD_TABLES": "{{ var.value.get('load_tables', '') }}",
         },
-        application_args=["--verbose"],
-        verbose=True,
     )
 
     # --- Task 6: Validate ClickHouse ---

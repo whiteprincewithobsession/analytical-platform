@@ -164,36 +164,31 @@ def check_airflow():
             capture_output=True, text=True, timeout=30,
         )
         if result.returncode == 0 and result.stdout.strip():
-            dag_lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+            lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+            # First line is header, rest are DAGs
+            dag_lines = lines[1:] if len(lines) > 1 else []
             details["dag_count"] = len(dag_lines)
-            details["dags"] = dag_lines[:15]  # first 15
+            details["dags"] = [l.split()[0] for l in dag_lines[:15]]
+        else:
+            details["dag_count"] = 0
     except Exception as e:
         details["dag_list_error"] = str(e)[:100]
-        # Fallback: count from DB
-        try:
-            result = subprocess.run(
-                ["airflow", "dags", "list", "-o", "table"],
-                capture_output=True, text=True, timeout=30,
-            )
-            # Count non-header lines
-            lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip() and "=" not in l]
-            details["dag_count"] = len(lines)
-        except Exception:
-            details["dag_count"] = "unknown"
+        details["dag_count"] = "unknown"
 
     # 3. Recent DAG run stats
     try:
         result = subprocess.run(
-            ["airflow", "dags", "list-runs", "-o", "plain", "--limit", "20"],
+            ["airflow", "dags", "list-runs", "-o", "table"],
             capture_output=True, text=True, timeout=30,
         )
         if result.returncode == 0 and result.stdout.strip():
-            runs = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
-            success_count = sum(1 for r in runs if "success" in r.lower())
-            failed_count = sum(1 for r in runs if "failed" in r.lower())
-            details["recent_runs_total"] = len(runs)
-            details["recent_success"] = success_count
-            details["recent_failed"] = failed_count
+            lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+            # Skip header lines (separator dashes)
+            data_lines = [l for l in lines if "=" not in l and l]
+            if data_lines:
+                success_count = sum(1 for r in data_lines if "success" in r.lower())
+                failed_count = sum(1 for r in data_lines if "failed" in r.lower())
+                details["recent_runs"] = f"{success_count} ok / {failed_count} fail / {len(data_lines)} total"
     except Exception:
         pass
 
@@ -204,8 +199,8 @@ def check_airflow():
             capture_output=True, text=True, timeout=30,
         )
         if result.returncode == 0 and result.stdout.strip():
-            pools = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
-            details["pools"] = len(pools)
+            lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+            details["pools"] = len(lines) - 1  # minus header
     except Exception:
         pass
 
@@ -224,32 +219,84 @@ def check_spark():
 
 
 def check_kafka():
-    r = requests.get(f"{KAFKA_UI_URL}/api/clusters", timeout=10)
-    if r.status_code == 200:
-        clusters = r.json()
-        topics_info = []
-        for c in clusters:
-            cid = c.get("id", "")
-            tr = requests.get(f"{KAFKA_UI_URL}/api/clusters/{cid}/topics", timeout=10)
-            if tr.status_code == 200:
-                topics = tr.json()
-                topics_info = [{"name": t["name"], "partitions": t["partitionCount"]} for t in topics[:10]]
-        return {"details": {"clusters": len(clusters), "topics": topics_info}}
-    return {"status": "unreachable", "details": {}}
+    """Collect Kafka stats — may be on different Docker network."""
+    import subprocess
+    try:
+        # Try HTTP first (same network)
+        r = requests.get(f"{KAFKA_UI_URL}/api/clusters", timeout=5)
+        if r.status_code == 200:
+            clusters = r.json()
+            topics_info = []
+            for c in clusters:
+                cid = c.get("id", "")
+                tr = requests.get(f"{KAFKA_UI_URL}/api/clusters/{cid}/topics", timeout=10)
+                if tr.status_code == 200:
+                    topics = tr.json()
+                    topics_info = [{"name": t["name"], "partitions": t["partitionCount"]} for t in topics[:10]]
+            return {"details": {"clusters": len(clusters), "topics": topics_info}}
+    except Exception:
+        pass
+
+    # Fallback: try docker exec from host
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "streaming-kafka", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            topics = [t.strip() for t in result.stdout.strip().split("\n") if t.strip()]
+            return {"details": {"topics": topics, "note": "checked via docker exec"}}
+    except Exception:
+        pass
+
+    return {"status": "unreachable", "details": {"note": "Kafka on different Docker network"}}
 
 
 def check_flink():
-    r = requests.get(f"{FLINK_URL}/overview", timeout=10)
-    if r.status_code == 200:
-        d = r.json()
-        return {"details": {
-            "taskmanagers": d.get("taskmanagers", 0),
-            "slots_total": d.get("slots-total", 0),
-            "slots_available": d.get("slots-available", 0),
-            "jobs_running": d.get("jobs-running", 0),
-            "jobs_finished": d.get("jobs-finished", 0),
-        }}
-    return {"status": "unreachable", "details": {}}
+    """Collect Flink stats — may be on different Docker network."""
+    import subprocess
+    try:
+        # Try HTTP first (same network) — port 8084 is external mapping, internal is 8081
+        for url in [f"{FLINK_URL}/overview", f"http://flink-jobmanager:8081/overview"]:
+            try:
+                r = requests.get(url, timeout=5)
+                if r.status_code == 200:
+                    d = r.json()
+                    return {"details": {
+                        "taskmanagers": d.get("taskmanagers", 0),
+                        "slots_total": d.get("slots-total", 0),
+                        "slots_available": d.get("slots-available", 0),
+                        "jobs_running": d.get("jobs-running", 0),
+                        "jobs_finished": d.get("jobs-finished", 0),
+                        "flink_version": d.get("flink-version", ""),
+                    }}
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    # Fallback: try docker exec (port 8081 inside container)
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "streaming-flink-jobmanager",
+             "wget", "-qO-", "http://localhost:8081/overview"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            d = json.loads(result.stdout)
+            return {"details": {
+                "taskmanagers": d.get("taskmanagers", 0),
+                "slots_total": d.get("slots-total", 0),
+                "slots_available": d.get("slots-available", 0),
+                "jobs_running": d.get("jobs-running", 0),
+                "jobs_finished": d.get("jobs-finished", 0),
+                "flink_version": d.get("flink-version", ""),
+                "note": "checked via docker exec",
+            }}
+    except Exception:
+        pass
+
+    return {"status": "unreachable", "details": {"note": "Flink on different Docker network"}}
 
 
 def check_localstack():

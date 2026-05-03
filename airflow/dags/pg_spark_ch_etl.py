@@ -269,8 +269,9 @@ def create_clickhouse_tables(**context):
                 raise
 
     # Verify tables
+    verify_query = f"SELECT database, name, engine FROM system.tables WHERE database='{CH_DATABASE}' ORDER BY name"
     resp = requests.post(
-        f"{ch_url}/?query=SELECT+database,+name,+engine+FROM+system.tables+WHERE+database='{CH_DATABASE}'+ORDER+BY+name",
+        f"{ch_url}/?query={urllib.parse.quote(verify_query)}",
         auth=auth,
     )
     resp.raise_for_status()
@@ -314,16 +315,12 @@ def validate_parquet(**context):
 # ============================================================
 def validate_clickhouse(**context):
     """Проверить что данные загружены в ClickHouse."""
+    import urllib.parse
     ch_url = _get_ch_connection()
     auth = (CH_USER, CH_PASSWORD)
 
-    query = """
-    SELECT database, name, total_rows, formatReadableSize(bytes_on_disk)
-    FROM system.tables
-    WHERE database = 'analytics'
-    ORDER BY total_rows DESC
-    """
-    resp = requests.post(f"{ch_url}/?query={query}", auth=auth)
+    query = "SELECT database, name, total_rows, formatReadableSize(bytes_on_disk) FROM system.tables WHERE database = 'analytics' ORDER BY total_rows DESC"
+    resp = requests.post(f"{ch_url}/?query={urllib.parse.quote(query)}", auth=auth)
     resp.raise_for_status()
     lines = resp.text.strip().split("\n")
 

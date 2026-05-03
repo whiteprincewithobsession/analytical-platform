@@ -44,12 +44,6 @@ S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "test")
 S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "test")
 S3_BUCKET = os.getenv("S3_BUCKET", "etl-staging")
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.mail.ru")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "stratum-platform@mail.ru")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
-
 DEFAULT_ARGS = {
     "owner": "data-engineering",
     "depends_on_past": False,
@@ -362,11 +356,18 @@ def send_alert_email(**context):
     if not alerts:
         return "No alerts triggered"
 
+    # SMTP from Airflow Variables
+    smtp_host = os.getenv("SMTP_HOST") or Variable.get("smtp_host", default_var="smtp.mail.ru")
+    smtp_port = int(os.getenv("SMTP_PORT") or Variable.get("smtp_port", default_var="587"))
+    smtp_user = os.getenv("SMTP_USER") or Variable.get("smtp_user", default_var="stratum-platform@mail.ru")
+    smtp_password = os.getenv("SMTP_PASSWORD") or Variable.get("smtp_password", default_var="")
+    smtp_from = os.getenv("SMTP_FROM") or Variable.get("smtp_from", default_var=smtp_user)
+
     # Recipients
     try:
         recipients = [r.strip() for r in Variable.get("report_recipients").split(",")]
     except Exception:
-        recipients = ["yarik_02022005@mail.ru", "yastremskiy_2014@mail.ru", "yarik02022005@mail.ru"]
+        recipients = ["yarik_02022005@mail.ru"]
 
     current = trend.get("current_period", {})
     previous = trend.get("previous_period", {})
@@ -406,15 +407,15 @@ def send_alert_email(**context):
 </table></td></tr></table></body></html>"""
 
     msg = MIMEMultipart("alternative")
-    msg["From"] = SMTP_FROM
+    msg["From"] = smtp_from
     msg["To"] = ", ".join(recipients)
     msg["Subject"] = f"⚠️ KPI Alert: {', '.join(a[:40] for a in alerts[:2])} — {context['ds']}"
     msg.attach(MIMEText(html, "html", "utf-8"))
 
-    server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
+    server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
     server.starttls()
-    server.login(SMTP_USER, SMTP_PASSWORD)
-    server.sendmail(SMTP_FROM, recipients, msg.as_string())
+    server.login(smtp_user, smtp_password)
+    server.sendmail(smtp_from, recipients, msg.as_string())
     server.quit()
 
     logging.info(f"Alert email sent to {recipients}: {alerts}")

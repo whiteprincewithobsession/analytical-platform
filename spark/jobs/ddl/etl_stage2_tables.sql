@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS analytics.users
 (
     id UInt64,
     email String,
-    phone String,
+    phone Nullable(String),
     registered_at DateTime,
     last_login Nullable(DateTime),
     is_active Bool,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS analytics.users
     first_name Nullable(String),
     last_name Nullable(String),
     birthday Nullable(Date),
-    gender Nullable(LowCardinality(String)),
+    gender Nullable(String),
     preferred_locale LowCardinality(String),
     timezone LowCardinality(String),
     loyalty_level_name LowCardinality(String),
@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS analytics.promotions
     description Nullable(String),
     active Bool,
     type LowCardinality(String),
-    discount_type Nullable(LowCardinality(String)),
+    discount_type Nullable(String),
     discount_value Nullable(Decimal(12, 2)),
     start_date DateTime,
     end_date DateTime,
@@ -230,10 +230,10 @@ CREATE TABLE IF NOT EXISTS analytics.order_status_history
 (
     id UInt32,
     order_id UInt64,
-    old_status Nullable(LowCardinality(String)),
+    old_status Nullable(String),
     new_status LowCardinality(String),
     changed_by Nullable(UInt64),
-    change_source Nullable(LowCardinality(String)),
+    change_source Nullable(String),
     change_time DateTime,
     snapshot_date Date DEFAULT today()
 )

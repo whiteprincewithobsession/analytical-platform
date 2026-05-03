@@ -1,6 +1,7 @@
 -- ============================================================
 -- ClickHouse DDL — Аналитическое хранилище (stage 2)
 -- Движок: ReplacingMergeTree(id) — идемпотентность дедубликации
+-- Копия из clickhouse/clickhouse_arch/tables/ для Spark volume
 -- ============================================================
 
 -- 1. Пользователи и профиль
@@ -8,7 +9,7 @@ CREATE TABLE IF NOT EXISTS analytics.users
 (
     id UInt64,
     email String,
-    phone String,
+    phone Nullable(String),
     registered_at DateTime,
     last_login Nullable(DateTime),
     is_active Bool,
@@ -16,7 +17,7 @@ CREATE TABLE IF NOT EXISTS analytics.users
     first_name Nullable(String),
     last_name Nullable(String),
     birthday Nullable(Date),
-    gender Nullable(LowCardinality(String)),
+    gender Nullable(String),
     preferred_locale LowCardinality(String),
     timezone LowCardinality(String),
     loyalty_level_name LowCardinality(String),
@@ -37,7 +38,7 @@ CREATE TABLE IF NOT EXISTS analytics.products
     name String,
     description Nullable(String),
     brand_name Nullable(String),
-    category_path String,           -- "Электроника/Смартфоны/..."
+    category_path String,
     category_id UInt32,
     price Decimal(12, 2),
     cost Nullable(Decimal(12, 2)),
@@ -75,7 +76,6 @@ CREATE TABLE IF NOT EXISTS analytics.orders_flat
     discount_amount Decimal(12, 2),
     source_channel LowCardinality(String),
     device_type LowCardinality(String),
-    -- order_item
     order_item_id UInt32,
     product_id UInt32,
     product_name String,
@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS analytics.promotions
     description Nullable(String),
     active Bool,
     type LowCardinality(String),
-    discount_type Nullable(LowCardinality(String)),
+    discount_type Nullable(String),
     discount_value Nullable(Decimal(12, 2)),
     start_date DateTime,
     end_date DateTime,
@@ -230,10 +230,10 @@ CREATE TABLE IF NOT EXISTS analytics.order_status_history
 (
     id UInt32,
     order_id UInt64,
-    old_status Nullable(LowCardinality(String)),
+    old_status Nullable(String),
     new_status LowCardinality(String),
     changed_by Nullable(UInt64),
-    change_source Nullable(LowCardinality(String)),
+    change_source Nullable(String),
     change_time DateTime,
     snapshot_date Date DEFAULT today()
 )

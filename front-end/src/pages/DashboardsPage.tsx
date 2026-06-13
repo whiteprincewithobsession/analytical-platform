@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BarChart3, ChevronDown, AlertCircle, Loader2, Check } from 'lucide-react';
+import { BarChart3, ChevronDown, AlertCircle, Loader2, Check, Download } from 'lucide-react';
 import { SupersetDashboard } from '../components/SupersetDashboard';
+import { ExportReportModal } from '../components/ExportReportModal';
 
 interface DashboardItem {
   id: number;
@@ -14,6 +15,7 @@ export const DashboardsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,7 +36,6 @@ export const DashboardsPage: React.FC = () => {
 
     fetchDashboards();
   }, []);
-
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -71,63 +72,76 @@ export const DashboardsPage: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-      {}
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <BarChart3 className="w-4 h-4" />
           <span>Выберите панель:</span>
         </div>
 
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-xl transition-all min-w-[280px] text-left group"
-          >
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-gray-900 dark:text-white truncate block">
-                {selectedDashboard?.dashboard_title || 'Выберите дашборд'}
-              </span>
-            </div>
-            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {isOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div className="max-h-64 overflow-y-auto">
-                {dashboards.map((d) => (
-                  <button
-                    key={d.id}
-                    onClick={() => {
-                      setSelectedId(d.id);
-                      setIsOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                      selectedId === d.id
-                        ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <BarChart3 className={`w-4 h-4 flex-shrink-0 ${
-                      selectedId === d.id ? 'text-indigo-500' : 'text-gray-400'
-                    }`} />
-                    <span className="flex-1 text-sm font-medium truncate">
-                      {d.dashboard_title || 'Без названия'}
-                    </span>
-                    {selectedId === d.id && <Check className="w-4 h-4 text-indigo-500 flex-shrink-0" />}
-                  </button>
-                ))}
+        <div className="flex items-center gap-3">
+          {/* Dashboard Selector */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-xl transition-all min-w-[280px] text-left group"
+            >
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-gray-900 dark:text-white truncate block">
+                  {selectedDashboard?.dashboard_title || 'Выберите дашборд'}
+                </span>
               </div>
-              {dashboards.length === 0 && (
-                <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                  Нет доступных дашбордов
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="max-h-64 overflow-y-auto">
+                  {dashboards.map((d) => (
+                    <button
+                      key={d.id}
+                      onClick={() => {
+                        setSelectedId(d.id);
+                        setIsOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                        selectedId === d.id
+                          ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <BarChart3 className={`w-4 h-4 flex-shrink-0 ${
+                        selectedId === d.id ? 'text-indigo-500' : 'text-gray-400'
+                      }`} />
+                      <span className="flex-1 text-sm font-medium truncate">
+                        {d.dashboard_title || 'Без названия'}
+                      </span>
+                      {selectedId === d.id && <Check className="w-4 h-4 text-indigo-500 flex-shrink-0" />}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
+                {dashboards.length === 0 && (
+                  <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    Нет доступных дашбордов
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Export Button */}
+          <button
+            onClick={() => setShowExportModal(true)}
+            disabled={!selectedId}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            <span className="text-sm font-medium hidden sm:inline">Выгрузить отчёт</span>
+          </button>
         </div>
       </div>
 
-      {}
+      {/* Dashboard Content */}
       <div className="flex-1 bg-white dark:bg-gray-800">
         {selectedId ? (
           <SupersetDashboard
@@ -140,6 +154,13 @@ export const DashboardsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Export Modal */}
+      <ExportReportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        dashboardTitle={selectedDashboard?.dashboard_title}
+      />
     </div>
   );
 };

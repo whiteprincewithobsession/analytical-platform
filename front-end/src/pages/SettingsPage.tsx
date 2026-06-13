@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useLocalization } from '../contexts/LocalizationContext';
+import { useAuth } from '../contexts/AuthContext';
 import type { DateFormat } from '../contexts/LocalizationContext';
 
 interface SettingsSectionProps {
@@ -98,13 +99,13 @@ const Toggle: React.FC<{
       <button
         onClick={() => !disabled && onChange(!enabled)}
         disabled={disabled}
-        className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${
+        className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${
           enabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
         } ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
       >
         <span
-          className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-            enabled ? 'translate-x-7' : 'translate-x-1'
+          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+            enabled ? 'translate-x-5' : 'translate-x-0'
           }`}
         />
       </button>
@@ -705,13 +706,137 @@ const ApiKeyRow: React.FC<{
   );
 };
 
+
+const TestEmailSection: React.FC<{
+  emailFrom: string;
+  t: (key: string, params?: Record<string, string>) => string;
+  language: string;
+}> = ({ emailFrom, t, language }) => {
+  const [emailTo, setEmailTo] = useState('');
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+
+  const handleSend = async () => {
+    if (!emailTo.trim() || !subject.trim() || !body.trim()) {
+      return;
+    }
+    setSending(true);
+    setStatus('idle');
+    setStatusMessage('');
+
+    try {
+      const response = await fetch('/email-api/send-test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: emailTo,
+          subject,
+          body,
+          from: emailFrom,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setStatus('success');
+        setStatusMessage(t('settingsSections.email.testEmailSent', { email: emailTo }));
+        setSubject('');
+        setBody('');
+      } else {
+        setStatus('error');
+        setStatusMessage(data.error || t('settingsSections.email.testEmailError'));
+      }
+    } catch (err) {
+      setStatus('error');
+      setStatusMessage(t('settingsSections.email.testEmailError'));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {t('settingsSections.email.emailRecipient')}
+        </label>
+        <input
+          type="email"
+          value={emailTo}
+          onChange={(e) => setEmailTo(e.target.value)}
+          placeholder="user@example.com"
+          className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {t('settingsSections.email.testEmailSubject')}
+        </label>
+        <input
+          type="text"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder={language === 'ru' ? 'Тестовое письмо' : 'Test email'}
+          className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {t('settingsSections.email.testEmailBody')}
+        </label>
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder={t('settingsSections.email.testEmailPlaceholder')}
+          rows={4}
+          className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg resize-y"
+        />
+      </div>
+
+      {statusMessage && (
+        <div className={`p-3 rounded-lg text-sm ${
+          status === 'success'
+            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
+            : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+        }`}>
+          {statusMessage}
+        </div>
+      )}
+
+      <button
+        onClick={handleSend}
+        disabled={sending || !emailTo.trim() || !subject.trim() || !body.trim()}
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-colors ${
+          sending || !emailTo.trim() || !subject.trim() || !body.trim()
+            ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            : 'bg-blue-600 text-white hover:bg-blue-700'
+        }`}
+      >
+        <Mail className="w-4 h-4" />
+        {sending ? t('settingsSections.email.sending') : t('settingsSections.email.sendTestEmail')}
+      </button>
+
+      <div className="text-xs text-gray-400 dark:text-gray-500">
+        {language === 'ru' ? 'Отправитель' : 'From'}: {emailFrom || '—'}
+      </div>
+    </div>
+  );
+};
+
+
 const SettingsPage: React.FC = () => {
-  const { t } = useLocalization();
+  const { t, language } = useLocalization();
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState('general');
   const [settings, setSettings] = useState({
     siteName: 'Marketplace Admin',
     domain: 'admin.marketplace.ru',
     timezone: 'Europe/Moscow',
+    userEmail: user?.email || '',
     maintenanceMode: false,
     debugMode: false,
     twoFactorAuth: true,
@@ -741,6 +866,24 @@ const SettingsPage: React.FC = () => {
       case 'general':
         return (
           <div className="space-y-6">
+            {user?.email && (
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                <div className="flex items-start gap-3">
+                  <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-900 dark:text-blue-300">
+                      {t('settingsSections.general.accountEmail') || 'Email аккаунта'}
+                    </h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                      {user.email}
+                    </p>
+                    <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">
+                      {t('settingsSections.general.accountEmailDesc') || 'Синхронизировано из Superset'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="grid gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1006,16 +1149,21 @@ const SettingsPage: React.FC = () => {
                   onChange={(e) => setSettings({...settings, emailFrom: e.target.value})}
                   className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                  {t('settingsSections.email.emailFromDesc')}
+                </p>
               </div>
             </div>
 
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-              <Tooltip content={t('settingsSections.email.testEmail')} position="right">
-                <button className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  <Mail className="w-4 h-4" />
-                  {t('settingsSections.email.testEmail')}
-                </button>
-              </Tooltip>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                {t('settingsSections.email.sendTestEmail')}
+              </h3>
+              <TestEmailSection
+                emailFrom={settings.emailFrom}
+                t={t}
+                language={language}
+              />
             </div>
           </div>
         );
@@ -1151,10 +1299,10 @@ const SettingsPage: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {activeConfig?.label}
+                  {activeConfig && t(activeConfig.labelKey)}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {activeConfig?.description}
+                  {activeConfig && t(activeConfig.descriptionKey)}
                 </p>
               </div>
             </div>

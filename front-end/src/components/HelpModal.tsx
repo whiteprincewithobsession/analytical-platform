@@ -50,15 +50,13 @@ interface HelpModalProps {
   onClose: () => void;
 }
 
-type Tab = 'overview' | 'guides' | 'faq' | 'shortcuts' | 'support' | 'documentation' | 'changelog';
+type Tab = 'overview' | 'guides' | 'faq' | 'shortcuts' | 'support';
 
 const tabs: { id: Tab; label: string; icon: typeof HelpCircle }[] = [
   { id: 'overview', label: 'Обзор', icon: HelpCircle },
   { id: 'guides', label: 'Руководства', icon: Book },
   { id: 'faq', label: 'FAQ', icon: MessageCircle },
   { id: 'shortcuts', label: 'Горячие клавиши', icon: Keyboard },
-  { id: 'documentation', label: 'Документация', icon: FileText },
-  { id: 'changelog', label: 'Changelog', icon: GitCommit },
   { id: 'support', label: 'Поддержка', icon: Mail },
 ];
 
@@ -793,6 +791,8 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
   const [replySubmitting, setReplySubmitting] = useState(false);
 
   // Changelog state
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>([]);
   const [changelogLoading, setChangelogLoading] = useState(false);
   const [changelogError, setChangelogError] = useState<string | null>(null);
@@ -872,13 +872,12 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
     }
   }, []);
 
-  // Fetch changelog from GitHub API
+  // Fetch changelog from GitHub API (via nginx proxy to avoid CORS)
   const fetchChangelog = useCallback(async () => {
     setChangelogLoading(true);
     setChangelogError(null);
     try {
-      // Try GitHub API first (public repo)
-      const res = await fetch('https://api.github.com/repos/yarikstratum/diplom/commits?per_page=50');
+      const res = await fetch('/api/github/repos/yarikstratum/diplom/commits?per_page=50');
       if (res.ok) {
         const data = await res.json();
         const entries: ChangelogEntry[] = data.map((commit: any) => ({
@@ -888,13 +887,6 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
           author: commit.commit.author?.name || commit.commit.committer?.name || 'Unknown',
         }));
         setChangelogEntries(entries);
-        return;
-      }
-      // Fallback: fetch from local git via API endpoint (if available)
-      const localRes = await fetch('/api/git/commits?limit=50');
-      if (localRes.ok) {
-        const data = await localRes.json();
-        setChangelogEntries(data.commits || []);
         return;
       }
       setChangelogError('Не удалось загрузить changelog. Попробуйте позже.');
@@ -1019,16 +1011,16 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
     }
   }, [isOpen, activeTab, fetchTickets]);
 
-  // Load changelog on changelog tab open
+  // Load changelog when changelog modal opens
   useEffect(() => {
-    if (isOpen && activeTab === 'changelog' && !changelogFetchedRef.current && !changelogLoading) {
+    if (showChangelogModal && !changelogFetchedRef.current && !changelogLoading) {
       changelogFetchedRef.current = true;
       fetchChangelog();
     }
-    if (activeTab !== 'changelog') {
+    if (!showChangelogModal) {
       changelogFetchedRef.current = false;
     }
-  }, [isOpen, activeTab, fetchChangelog]);
+  }, [showChangelogModal, fetchChangelog]);
 
   if (!isOpen) return null;
 
@@ -1118,26 +1110,40 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                     Быстрые ссылки
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { icon: Book, label: 'Документация', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
-                      { icon: Video, label: 'Видеоуроки', color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
-                      { icon: FileText, label: 'Changelog', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' },
-                      { icon: MessageCircle, label: 'Сообщество', color: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' },
-                    ].map(item => {
-                      const Icon = item.icon;
-                      return (
-                        <button
-                          key={item.label}
-                          className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <div className={`p-2 rounded-lg ${item.color}`}>
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <span className="font-medium text-gray-900 dark:text-white">{item.label}</span>
-                          <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
-                        </button>
-                      );
-                    })}
+                    <button
+                      onClick={() => setShowDocModal(true)}
+                      className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                    >
+                      <div className="p-2 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <span className="font-medium text-gray-900 dark:text-white">Документация</span>
+                    </button>
+                    <button
+                      onClick={() => setShowChangelogModal(true)}
+                      className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                    >
+                      <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        <GitCommit className="w-5 h-5" />
+                      </div>
+                      <span className="font-medium text-gray-900 dark:text-white">Changelog</span>
+                    </button>
+                    <button
+                      className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                    >
+                      <div className="p-2 rounded-lg bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                        <Video className="w-5 h-5" />
+                      </div>
+                      <span className="font-medium text-gray-900 dark:text-white">Видеоуроки</span>
+                    </button>
+                    <button
+                      className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                    >
+                      <div className="p-2 rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                        <MessageCircle className="w-5 h-5" />
+                      </div>
+                      <span className="font-medium text-gray-900 dark:text-white">Сообщество</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1344,174 +1350,6 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               </div>
             )}
 
-            {activeTab === 'documentation' && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Техническая документация
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Эндпоинты API, интеграции и пайплайны данных
-                </p>
-                {documentationSections.map((section, index) => {
-                  const Icon = section.icon;
-                  return (
-                    <div
-                      key={index}
-                      className="rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden"
-                    >
-                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50">
-                        <div className="flex items-start gap-4">
-                          <div className={`p-3 rounded-xl ${section.color}`}>
-                            <Icon className="w-6 h-6" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
-                              {section.title}
-                            </h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {section.description}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {section.items.map((item, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800"
-                          >
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                              {item.label}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              {item.method && (
-                                <span
-                                  className={`px-2 py-0.5 text-xs font-mono font-semibold rounded ${
-                                    item.method === 'GET'
-                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                      : item.method === 'POST'
-                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                                  }`}
-                                >
-                                  {item.method}
-                                </span>
-                              )}
-                              <code className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                                {item.endpoint}
-                              </code>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {activeTab === 'changelog' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      История изменений
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Последние коммиты из репозитория
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => { changelogFetchedRef.current = false; fetchChangelog(); }}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
-                    title="Обновить"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {changelogLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="w-6 h-6 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-                    <span className="ml-3 text-sm text-gray-500 dark:text-gray-400">Загрузка...</span>
-                  </div>
-                ) : changelogError ? (
-                  <div className="p-6 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-center">
-                    <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-2" />
-                    <p className="text-sm text-red-600 dark:text-red-400">{changelogError}</p>
-                  </div>
-                ) : changelogEntries.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-                    <GitCommit className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Нет данных о коммитах</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {changelogEntries.map((entry) => {
-                      const dateObj = entry.date ? new Date(entry.date) : null;
-                      const dateStr = dateObj
-                        ? dateObj.toLocaleDateString('ru-RU', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : '';
-
-                      // Parse conventional commit prefix
-                      const commitMatch = entry.message.match(/^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?:\s*(.+)$/);
-                      const commitType = commitMatch ? commitMatch[1] : '';
-                      const commitMsg = commitMatch ? commitMatch[3] : entry.message;
-
-                      const typeColors: Record<string, string> = {
-                        feat: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-                        fix: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-                        docs: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-                        refactor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-                        perf: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-                        test: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400',
-                      };
-
-                      return (
-                        <div
-                          key={entry.sha}
-                          className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors"
-                        >
-                          <div className="flex-shrink-0 mt-0.5">
-                            <GitCommit className="w-4 h-4 text-gray-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {commitType && (
-                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${typeColors[commitType] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}`}>
-                                  {commitType}
-                                </span>
-                              )}
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                {commitMsg}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                              <span className="font-mono">{entry.sha}</span>
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {dateStr}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Tag className="w-3 h-3" />
-                                {entry.author}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
             {activeTab === 'support' && (
               <div className="space-y-6">
                 {/* Форма создания обращения */}
@@ -1680,6 +1518,182 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
           </div>
         </div>
       </div>
+
+      {/* Documentation Modal */}
+      {showDocModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowDocModal(false)}>
+          <div className="w-full max-w-4xl max-h-[85vh] bg-white dark:bg-gray-800 corporate:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-600">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30">
+                  <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Техническая документация</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Эндпоинты API, интеграции и пайплайны данных</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDocModal(false)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {documentationSections.map((section, index) => {
+                const Icon = section.icon;
+                return (
+                  <div key={index} className="rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50">
+                      <div className="flex items-start gap-4">
+                        <div className={`p-3 rounded-xl ${section.color}`}>
+                          <Icon className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{section.title}</h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{section.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {section.items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800">
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{item.label}</span>
+                          <div className="flex items-center gap-2">
+                            {item.method && (
+                              <span className={`px-2 py-0.5 text-xs font-mono font-semibold rounded ${
+                                item.method === 'GET'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                  : item.method === 'POST'
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                              }`}>
+                                {item.method}
+                              </span>
+                            )}
+                            <code className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                              {item.endpoint}
+                            </code>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Changelog Modal */}
+      {showChangelogModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowChangelogModal(false)}>
+          <div className="w-full max-w-4xl max-h-[85vh] bg-white dark:bg-gray-800 corporate:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-600">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+                  <GitCommit className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">История изменений</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Последние коммиты из репозитория</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { changelogFetchedRef.current = false; fetchChangelog(); }}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+                  title="Обновить"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+                <button onClick={() => setShowChangelogModal(false)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              {changelogLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-6 h-6 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+                  <span className="ml-3 text-sm text-gray-500 dark:text-gray-400">Загрузка...</span>
+                </div>
+              ) : changelogError ? (
+                <div className="p-6 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-center">
+                  <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-2" />
+                  <p className="text-sm text-red-600 dark:text-red-400">{changelogError}</p>
+                </div>
+              ) : changelogEntries.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+                  <GitCommit className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Нет данных о коммитах</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {changelogEntries.map((entry) => {
+                    const dateObj = entry.date ? new Date(entry.date) : null;
+                    const dateStr = dateObj
+                      ? dateObj.toLocaleDateString('ru-RU', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '';
+
+                    const commitMatch = entry.message.match(/^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?:\s*(.+)$/);
+                    const commitType = commitMatch ? commitMatch[1] : '';
+                    const commitMsg = commitMatch ? commitMatch[3] : entry.message;
+
+                    const typeColors: Record<string, string> = {
+                      feat: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+                      fix: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                      docs: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                      refactor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                      perf: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                      test: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400',
+                    };
+
+                    return (
+                      <div
+                        key={entry.sha}
+                        className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors"
+                      >
+                        <div className="flex-shrink-0 mt-0.5">
+                          <GitCommit className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {commitType && (
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${typeColors[commitType] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}`}>
+                                {commitType}
+                              </span>
+                            )}
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {commitMsg}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="font-mono">{entry.sha}</span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {dateStr}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Tag className="w-3 h-3" />
+                              {entry.author}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Ticket Detail Modal */}
       {selectedTicket && ticketDetail && (

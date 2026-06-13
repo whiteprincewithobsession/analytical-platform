@@ -1,18 +1,18 @@
 """
-Spark ETL — Extract: PostgreSQL → LocalStack S3 (Parquet)
+Spark ETL - Extract: PostgreSQL to LocalStack S3 (Parquet)
 
 Usage (via spark-submit):
-    spark-submit \
-      --master spark://spark-master:7077 \
-      --packages org.postgresql:postgresql:42.7.1,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
-      --conf spark.sql.extensions=org.apache.spark.sql.SparkSession \
+    spark-submit \\
+      --master spark://spark-master:7077 \\
+      --packages org.postgresql:postgresql:42.7.1,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \\
+      --conf spark.sql.extensions=org.apache.spark.sql.SparkSession \\
       /opt/spark/jobs/extract_pg_to_s3.py
 
 Environment variables (override defaults in config/etl_config.py):
     PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD
     S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET
-    INCREMENTAL_WATERMARK — ISO date for incremental load (e.g. 2025-01-01)
-    SNAPSHOT_DATE — partition date in S3 (default: today)
+    INCREMENTAL_WATERMARK - ISO date for incremental load (e.g. 2025-01-01)
+    SNAPSHOT_DATE - partition date in S3 (default: today)
 """
 
 import os
@@ -22,7 +22,6 @@ from datetime import datetime, date
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit, col
 
-# Add config dir to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "config"))
 from etl_config import (
     PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD,
@@ -58,7 +57,6 @@ def pg_url(database: str = PG_DATABASE) -> str:
 
 
 def read_pg_table(spark, schema: str, table: str, watermark: str = None, timestamp_col: str = None):
-    """Read a single PG table with optional incremental filter."""
     query = f'"{schema}"."{table}"'
     df = (
         spark.read
@@ -78,7 +76,6 @@ def read_pg_table(spark, schema: str, table: str, watermark: str = None, timesta
 
 
 def write_s3_parquet(df, schema: str, table: str, snapshot_date: str):
-    """Write DataFrame to S3 as Parquet (snappy compression)."""
     key = s3_key(schema, table, snapshot_date)
     s3_path = f"s3a://{S3_BUCKET}/{key}"
     (
@@ -91,7 +88,6 @@ def write_s3_parquet(df, schema: str, table: str, snapshot_date: str):
 
 
 def extract_full_load_tables(spark, snapshot_date: str):
-    """Extract all full-load (reference) tables."""
     results = []
     for pg_table, _ in FULL_LOAD_TABLES.items():
         schema, table = pg_table.split(".")
@@ -111,7 +107,6 @@ def extract_full_load_tables(spark, snapshot_date: str):
 
 
 def extract_incremental_tables(spark, snapshot_date: str, watermark: str):
-    """Extract tables with incremental load (WHERE timestamp_col >= watermark)."""
     results = []
     for pg_table, ts_col in INCREMENTAL_TABLES.items():
         schema, table = pg_table.split(".")
@@ -132,7 +127,6 @@ def extract_incremental_tables(spark, snapshot_date: str, watermark: str):
 
 
 def extract_denormalized(spark, snapshot_date: str):
-    """Extract denormalized views (products, users, orders_flat, etc.)."""
     results = []
 
     denorm_queries = {
@@ -165,7 +159,6 @@ def extract_denormalized(spark, snapshot_date: str):
             print(f"[FAIL] {alias}: {e}")
             results.append({"table": alias, "error": str(e), "mode": "denorm"})
 
-    # orders_flat: JOIN orders + order_items
     try:
         df_orders = spark.read \
             .format("jdbc") \
@@ -205,20 +198,13 @@ def main():
 
     all_results = []
 
-    # 1. Full-load reference tables
-    print("\n--- FULL LOAD TABLES ---")
     all_results.extend(extract_full_load_tables(spark, snapshot_date))
 
-    # 2. Incremental tables
     if watermark:
-        print("\n--- INCREMENTAL TABLES ---")
         all_results.extend(extract_incremental_tables(spark, snapshot_date, watermark))
 
-    # 3. Denormalized queries
-    print("\n--- DENORMALIZED QUERIES ---")
     all_results.extend(extract_denormalized(spark, snapshot_date))
 
-    # Summary
     success = [r for r in all_results if "error" not in r]
     failed = [r for r in all_results if "error" in r]
     total_rows = sum(r.get("rows", 0) for r in success)

@@ -1,6 +1,6 @@
 """
-Shared ETL configuration — table mappings, incremental columns,
-PostgreSQL → ClickHouse type mapping, S3 paths.
+Shared ETL configuration - table mappings, incremental columns,
+PostgreSQL to ClickHouse type mapping, S3 paths.
 """
 
 from pyspark.sql.types import (
@@ -9,9 +9,6 @@ from pyspark.sql.types import (
     StructType, StructField
 )
 
-# ============================================================
-# Connection defaults (override via env / Spark conf)
-# ============================================================
 PG_HOST = "retail_container"
 PG_PORT = 5432
 PG_DATABASE = "omni_retail_core"
@@ -29,24 +26,18 @@ CH_USER = "admin"
 CH_PASSWORD = "admin"
 CH_DATABASE = "analytics"
 
-# ============================================================
-# Table groups
-# ============================================================
-
-# Tables with updated_at for incremental load
 INCREMENTAL_TABLES = {
     "cart.cart": "updated_at",
     "cart.cart_items": "updated_at",
     "catalog.products": "updated_at",
     "catalog.inventory": "updated_at",
     "sales.orders": "updated_at",
-    "sales.order_items": "created_at",     # order_items не меняется
+    "sales.order_items": "created_at",
     "feedback.reviews": "updated_at",
     "promo.promotions": "updated_at",
     "system.user_activity": "activity_time",
 }
 
-# Full-load (справочники, маленькие, меняются редко)
 FULL_LOAD_TABLES = {
     "core.users": None,
     "core.roles": None,
@@ -68,14 +59,11 @@ FULL_LOAD_TABLES = {
     "sales.order_status_history": None,
 }
 
-# ============================================================
-# Mapping: PostgreSQL schema.table → ClickHouse table
-# ============================================================
 PG_TO_CH = {
     "core.users":                    "users",
     "catalog.products":              "products",
     "sales.orders":                  "orders_flat",
-    "sales.order_items":             "orders_flat",   # merge into orders_flat
+    "sales.order_items":             "orders_flat",
     "cart.cart":                     "carts",
     "cart.cart_items":               "cart_items",
     "catalog.inventory":             "inventory",
@@ -86,18 +74,10 @@ PG_TO_CH = {
     "system.user_activity":          "user_activity",
 }
 
-# ============================================================
-# S3 path layout: s3://bucket/pg/{schema}/{table}/snapshot_date=YYYY-MM-DD/
-# ============================================================
 def s3_key(schema: str, table: str, snapshot_date: str) -> str:
     return f"pg/{schema}/{table}/snapshot_date={snapshot_date}/{table}.parquet"
 
 
-# ============================================================
-# Denormalization queries — для tables_flat + merge orders+items
-# ============================================================
-
-# orders_flat: JOIN orders + order_items + denormalized dimensions
 ORDERS_FLAT_QUERY = """
 SELECT
     o.id AS order_id,
@@ -142,7 +122,6 @@ LEFT JOIN system.loyalty_levels ll ON ll.id = o.loyalty_level_id
 LEFT JOIN system.device_types dv ON dv.id = o.device_type_id
 """
 
-# products denormalized: + brand + category path
 PRODUCTS_DENORM_QUERY = """
 SELECT
     p.id,
@@ -163,7 +142,6 @@ LEFT JOIN catalog.brands b ON b.id = p.brand_id
 LEFT JOIN catalog.categories cat ON cat.id = p.category_id
 """
 
-# users denormalized: + loyalty level
 USERS_DENORM_QUERY = """
 SELECT
     u.id,
@@ -185,7 +163,6 @@ FROM core.users u
 LEFT JOIN system.loyalty_levels ll ON ll.id = u.loyalty_level_id
 """
 
-# inventory denormalized: + warehouse + product names
 INVENTORY_DENORM_QUERY = """
 SELECT
     i.id,
@@ -205,7 +182,6 @@ LEFT JOIN catalog.warehouses w ON w.id = i.warehouse_id
 LEFT JOIN catalog.products p ON p.id = i.product_id
 """
 
-# reviews denormalized: + product name
 REVIEWS_DENORM_QUERY = """
 SELECT
     r.id,

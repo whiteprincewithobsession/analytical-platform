@@ -1,8 +1,7 @@
 """
-Spark ETL — Load: LocalStack S3 (Parquet) → ClickHouse
+Spark ETL - Load: LocalStack S3 (Parquet) to ClickHouse
 
 Reads Parquet from S3 using Spark, converts to CSV, POSTs to ClickHouse HTTP API.
-No JDBC needed — uses native ClickHouse HTTP interface with CSV format.
 """
 
 import os
@@ -73,7 +72,6 @@ def read_denorm_parquet(spark, pg_table: str, snapshot_date: str):
 
 
 def write_to_clickhouse_http(df, ch_table: str):
-    """Write DataFrame to ClickHouse via HTTP API (CSV format)."""
     rows = df.collect()
     if not rows:
         print(f"  Empty DataFrame, skipping")
@@ -95,7 +93,6 @@ def write_to_clickhouse_http(df, ch_table: str):
             elif isinstance(val, bool):
                 row_data.append("1" if val else "0")
             elif hasattr(val, "strftime"):
-                # DateTime/Date — format without microseconds
                 if hasattr(val, "microsecond") and val.microsecond:
                     row_data.append(val.strftime("%Y-%m-%d %H:%M:%S"))
                 elif hasattr(val, "year"):
@@ -111,7 +108,6 @@ def write_to_clickhouse_http(df, ch_table: str):
     csv_data = buffer.getvalue()
     buffer.close()
 
-    # POST to ClickHouse HTTP using urllib
     query = f"INSERT INTO {CH_DATABASE}.{ch_table} FORMAT CSVWithNames"
     ch_url = f"http://{CH_HOST}:{CH_HTTP_PORT}/?query={urllib.parse.quote(query)}"
 
@@ -139,7 +135,6 @@ def write_to_clickhouse_http(df, ch_table: str):
 
 
 def load_standard_tables(spark, snapshot_date: str, table_filter: list = None):
-    """Load standard PG tables (1:1 mapping to ClickHouse)."""
     results = []
     for pg_table, ch_table in PG_TO_CH.items():
         if table_filter and pg_table not in table_filter:
@@ -173,7 +168,6 @@ def load_standard_tables(spark, snapshot_date: str, table_filter: list = None):
 
 
 def load_denorm_tables(spark, snapshot_date: str, table_filter: list = None):
-    """Load denormalized tables."""
     results = []
     for pg_table, ch_table in DENORM_TABLES.items():
         if table_filter and pg_table not in table_filter:
@@ -220,15 +214,10 @@ def main():
 
     all_results = []
 
-    # 1. Standard tables
-    print("\n--- LOAD STANDARD TABLES ---")
     all_results.extend(load_standard_tables(spark, snapshot_date, table_filter))
 
-    # 2. Denormalized tables
-    print("\n--- LOAD DENORMALIZED TABLES ---")
     all_results.extend(load_denorm_tables(spark, snapshot_date, table_filter))
 
-    # Summary
     success = [r for r in all_results if "error" not in r]
     failed = [r for r in all_results if "error" in r]
     total_rows = sum(r.get("rows", 0) for r in success)

@@ -9,6 +9,7 @@ services:
     restart: unless-stopped
     depends_on:
       - email-api
+      - products-api
     networks:
       - retail_network
 
@@ -23,6 +24,8 @@ services:
       - SUPERSET_URL=http://superset:8088
       - SUPERSET_USER=${SUPERSET_USER:-admin}
       - SUPERSET_PASSWORD=${SUPERSET_PASSWORD:-admin}
+      - SUPERSET_API_USER=${SUPERSET_USER:-admin}
+      - SUPERSET_API_PASSWORD=${SUPERSET_PASSWORD:-admin}
       - REPORT_RECIPIENTS=yarik_02022005@mail.ru,yastremskiy_2014@mail.ru,yarik02022005@mail.ru
       # Service connections for system report
       - CH_HOST=clickhouse
@@ -41,6 +44,20 @@ services:
       - KAFKA_UI_URL=http://kafka-ui:8090
       - FLINK_URL=http://flink-jobmanager:8084
       - LOCALSTACK_URL=http://localstack:4566
+    restart: unless-stopped
+    networks:
+      - retail_network
+
+  products-api:
+    build: ./products-api
+    container_name: retail_products_api
+    environment:
+      - PG_HOST=retail_container
+      - PG_PORT=5432
+      - PG_USER=admin
+      - PG_PASSWORD=admin
+      - PG_DATABASE=omni_retail_core
+      - EMAIL_API_URL=http://email-api:5555
     restart: unless-stopped
     networks:
       - retail_network

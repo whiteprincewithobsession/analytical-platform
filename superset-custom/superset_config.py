@@ -1,7 +1,14 @@
+import os
+
 FEATURE_FLAGS = {
     "EMBEDDED_SUPERSET": True,
     "DASHBOARD_CROSS_FILTERS": True,
 }
+
+SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY", "diplom-superset-secret-key-2025-stable")
+
+# PostgreSQL БД
+SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://superset:superset_pass@supersetdb:5432/superset_meta"
 
 HTTP_HEADERS = {
     "X-Frame-Options": "ALLOWALL",

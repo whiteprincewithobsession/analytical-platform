@@ -1,5 +1,5 @@
 """
-System Report Module — Infrastructure health & statistics
+System Report Module - Infrastructure health and statistics
 
 Collects metrics from all services (PostgreSQL, ClickHouse, Airflow,
 Spark, Kafka, LocalStack) and sends a formatted email report.
@@ -25,9 +25,8 @@ from flask import Blueprint, request, jsonify
 
 logger = logging.getLogger(__name__)
 
-system_bp = Blueprint("system_report", __name__)
+system_bp = Blueprint("system_report", __name__, url_prefix="/sys-report")
 
-# ─── Config ──────────────────────────────────────────────
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.mail.ru").strip()
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "stratum-platform@mail.ru").strip()
@@ -40,7 +39,6 @@ DEFAULT_RECIPIENTS = os.getenv(
 ).split(",")
 DEFAULT_RECIPIENTS = [r.strip() for r in DEFAULT_RECIPIENTS if r.strip()]
 
-# Service URLs
 CH_HOST = os.getenv("CH_HOST", "clickhouse").strip()
 CH_PORT = os.getenv("CH_HTTP_PORT", "8123")
 CH_USER = os.getenv("CH_USER", "admin")
@@ -63,10 +61,7 @@ FLINK_URL = os.getenv("FLINK_URL", "http://flink-jobmanager:8084")
 SUPERSET_URL = os.getenv("SUPERSET_URL", "http://superset:8088")
 
 
-# ─── Service collectors ──────────────────────────────────
-
 def _ch_query(query: str) -> str:
-    """Execute ClickHouse query via HTTP."""
     ch_url = f"http://{CH_HOST}:{CH_PORT}/?query={requests.utils.quote(query)}"
     resp = requests.get(ch_url, auth=(CH_USER, CH_PASSWORD), timeout=15)
     resp.raise_for_status()
@@ -74,7 +69,6 @@ def _ch_query(query: str) -> str:
 
 
 def check_clickhouse():
-    """Collect ClickHouse stats."""
     status = {"service": "ClickHouse", "status": "unknown", "details": {}}
     try:
         version = _ch_query("SELECT version()")
@@ -93,7 +87,7 @@ def check_clickhouse():
             parts = line.split("\t")
             if len(parts) >= 3:
                 table_rows.append({"name": parts[1], "rows": parts[2], "size": parts[3] if len(parts) > 3 else "0 B"})
-        status["details"]["tables"] = table_rows[:15]  # top 15
+        status["details"]["tables"] = table_rows[:15]
         status["details"]["total_tables"] = len(table_rows)
 
     except Exception as e:
@@ -103,7 +97,6 @@ def check_clickhouse():
 
 
 def check_postgresql():
-    """Collect PostgreSQL stats."""
     status = {"service": "PostgreSQL", "status": "unknown", "details": {}}
     try:
         import psycopg2
@@ -147,7 +140,6 @@ def check_postgresql():
 
 
 def check_airflow():
-    """Collect Airflow stats."""
     status = {"service": "Apache Airflow", "status": "unknown", "details": {}}
     try:
         session = requests.Session()
@@ -168,7 +160,6 @@ def check_airflow():
         status["details"]["triggerer"] = health.get("triggerer", {}).get("status", "unknown")
         status["details"]["metadatabase"] = health.get("metadatabase", {}).get("status", "unknown")
 
-        # List DAGs
         r = session.get(f"{AIRFLOW_URL}/api/v1/dags", timeout=10)
         if r.status_code == 200:
             dags = r.json().get("dags", [])
@@ -185,18 +176,15 @@ def check_airflow():
 
 
 def check_spark():
-    """Collect Spark stats."""
     status = {"service": "Apache Spark", "status": "unknown", "details": {}}
     try:
         r = requests.get(SPARK_MASTER_URL, timeout=10)
         if r.status_code == 200:
             status["status"] = "healthy"
-            # Parse workers from HTML
             workers = re.findall(r'<td>(\d+\.\d+\.\d+\.\d+:\d+)</td>\s*<td>ALIVE</td>', r.text)
             status["details"]["alive_workers"] = len(workers)
             status["details"]["workers"] = workers
 
-            # Apps
             apps = re.findall(r'<strong>(app-[^<]+)</strong>', r.text)
             status["details"]["running_apps"] = len(apps)
         else:
@@ -209,7 +197,6 @@ def check_spark():
 
 
 def check_kafka():
-    """Collect Kafka stats via Kafka UI."""
     status = {"service": "Apache Kafka", "status": "unknown", "details": {}}
     try:
         r = requests.get(f"{KAFKA_UI_URL}/api/clusters", timeout=10)
@@ -240,7 +227,6 @@ def check_kafka():
 
 
 def check_flink():
-    """Collect Flink stats."""
     status = {"service": "Apache Flink", "status": "unknown", "details": {}}
     try:
         r = requests.get(f"{FLINK_URL}/overview", timeout=10)
@@ -262,7 +248,6 @@ def check_flink():
 
 
 def check_localstack():
-    """Collect LocalStack (S3) stats."""
     status = {"service": "LocalStack (S3)", "status": "unknown", "details": {}}
     try:
         import boto3
@@ -297,7 +282,6 @@ def check_localstack():
 
 
 def check_superset():
-    """Collect Superset stats."""
     status = {"service": "Apache Superset", "status": "unknown", "details": {}}
     try:
         session = requests.Session()
@@ -326,10 +310,7 @@ def check_superset():
     return status
 
 
-# ─── HTML email template ─────────────────────────────────
-
 def _build_html_report(services: list, run_time: str):
-    """Build HTML email body."""
 
     def status_badge(s):
         if s == "healthy":
@@ -414,7 +395,6 @@ def _build_html_report(services: list, run_time: str):
 
 
 def _send_system_report_email(recipients: list, services: list, run_time: str):
-    """Send system report email."""
     html_body = _build_html_report(services, run_time)
 
     healthy_count = len([s for s in services if s.get("status") == "healthy"])
@@ -434,24 +414,19 @@ def _send_system_report_email(recipients: list, services: list, run_time: str):
     logger.info(f"System report sent to {recipients}")
 
 
-# ─── Routes ──────────────────────────────────────────────
-
 @system_bp.route("/system-report", methods=["POST"])
 def system_report():
-    """Collect system stats from all services and email the report."""
     data = request.get_json(silent=True) or {}
 
-    # Recipients: from request → env default → hardcoded fallback
     recipients = data.get("recipients", [])
     if not recipients:
         recipients = DEFAULT_RECIPIENTS[:]
 
-    # Validate emails
     for r in recipients:
         if "@" not in r or "." not in r.split("@")[-1]:
             return jsonify({"error": f"Invalid email: {r}"}), 400
 
-    timeout = data.get("timeout", 60)  # per-service timeout in seconds
+    timeout = data.get("timeout", 60)
     parallel = data.get("parallel", True)
 
     run_time = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
@@ -496,10 +471,8 @@ def system_report():
                     "details": {},
                 })
 
-    # Sort: healthy first, then errors
     services.sort(key=lambda s: 0 if s["status"] == "healthy" else 1)
 
-    # Send email
     try:
         _send_system_report_email(recipients, services, run_time)
         email_sent = True
@@ -518,7 +491,6 @@ def system_report():
 
 @system_bp.route("/system-report/preview", methods=["GET"])
 def system_report_preview():
-    """Preview HTML report without sending email."""
     services = []
     for collector in [
         check_clickhouse, check_postgresql, check_airflow,

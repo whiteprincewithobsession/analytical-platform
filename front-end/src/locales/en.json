@@ -36,6 +36,8 @@
     "warning": "Warning",
     "info": "Info",
     "marketplace": "Marketplace",
+    "stratum": "Stratum",
+    "logoTooltip": "Analytics Platform",
     "yourRole": "Your Role",
     "permissionsActive": "permissions active",
     "help": "Help",
@@ -143,7 +145,28 @@
     "inventoryStatus": "Inventory Status",
     "inventoryStatusDesc": "Inventory status and warehouse stock",
     "promoEfficiency": "Promo Efficiency",
-    "promoEfficiencyDesc": "Promotions and discounts effectiveness"
+    "promoEfficiencyDesc": "Promotions and discounts effectiveness",
+    "exportReport": "Export Report",
+    "exportModal": {
+      "title": "Export Report",
+      "subtitle": "Select export format",
+      "downloadPdf": "Download PDF",
+      "downloadPdfDesc": "Save dashboard as PDF file",
+      "downloadPng": "Download Image",
+      "downloadPngDesc": "Save dashboard as PNG image",
+      "sendEmail": "Send via Email",
+      "sendEmailDesc": "Send PDF report via email",
+      "emailPlaceholder": "Recipient email",
+      "emailFromSuperset": "Email from Superset account",
+      "sending": "Sending...",
+      "sendingSuccess": "Report sent to {email}",
+      "sendingError": "Error sending report",
+      "preparingPdf": "Preparing PDF...",
+      "preparingPng": "Preparing image...",
+      "dashboardTitle": "Dashboard",
+      "generatedAt": "Generated",
+      "exportedFrom": "Exported from"
+    }
   },
   "sales": {
     "title": "Sales",
@@ -260,7 +283,8 @@
     "admin": "Administrator",
     "analyst": "Analyst",
     "manager": "Manager",
-    "viewer": "Viewer"
+    "viewer": "Viewer",
+    "spectator": "Viewer"
   },
   "permissions": {
     "view_dashboard": "View Overview",
@@ -371,6 +395,8 @@
       "siteName": "Site Name",
       "domain": "Domain",
       "timezone": "Timezone",
+      "accountEmail": "Account Email",
+      "accountEmailDesc": "Synchronized from Superset",
       "workModes": "Work Modes",
       "maintenanceMode": "Maintenance Mode",
       "maintenanceModeDesc": "Site will be unavailable for regular users",
@@ -422,8 +448,15 @@
       "smtpPort": "SMTP Port",
       "encryption": "Encryption",
       "emailFrom": "Sender Email",
-      "testEmail": "Send Test Email",
-      "sending": "Sending..."
+      "emailFromDesc": "Address from which system emails will be sent",
+      "emailRecipient": "Recipient Email",
+      "testEmailSubject": "Email Subject",
+      "testEmailBody": "Email Body",
+      "testEmailPlaceholder": "Enter test email text...",
+      "sendTestEmail": "Send Test Email",
+      "sending": "Sending...",
+      "testEmailSent": "Test email sent to {email}",
+      "testEmailError": "Error sending email"
     },
     "api": {
       "apiKey": "API Key",

@@ -36,6 +36,8 @@
     "warning": "Предупреждение",
     "info": "Информация",
     "marketplace": "Marketplace",
+    "stratum": "Стратум",
+    "logoTooltip": "Платформа аналитики",
     "yourRole": "Ваша роль",
     "permissionsActive": "разрешений активно",
     "help": "Помощь",
@@ -143,7 +145,28 @@
     "inventoryStatus": "Статус запасов",
     "inventoryStatusDesc": "Статус запасов и остатки на складах",
     "promoEfficiency": "Эффективность промо",
-    "promoEfficiencyDesc": "Эффективность промоакций и скидок"
+    "promoEfficiencyDesc": "Эффективность промоакций и скидок",
+    "exportReport": "Выгрузить отчёт",
+    "exportModal": {
+      "title": "Выгрузка отчёта",
+      "subtitle": "Выберите формат выгрузки",
+      "downloadPdf": "Скачать PDF",
+      "downloadPdfDesc": "Сохранить дашборд как PDF-файл",
+      "downloadPng": "Скачать изображение",
+      "downloadPngDesc": "Сохранить дашборд как PNG-изображение",
+      "sendEmail": "Отправить на почту",
+      "sendEmailDesc": "Отправить PDF-отчёт на email",
+      "emailPlaceholder": "Email получателя",
+      "emailFromSuperset": "Email из аккаунта Superset",
+      "sending": "Отправка...",
+      "sendingSuccess": "Отчёт отправлен на {email}",
+      "sendingError": "Ошибка при отправке",
+      "preparingPdf": "Подготовка PDF...",
+      "preparingPng": "Подготовка изображения...",
+      "dashboardTitle": "Дашборд",
+      "generatedAt": "Сформирован",
+      "exportedFrom": "Экспортировано из"
+    }
   },
   "sales": {
     "title": "Продажи",
@@ -260,7 +283,7 @@
     "admin": "Администратор",
     "analyst": "Аналитик",
     "manager": "Менеджер",
-    "viewer": "Наблюдатель"
+    "spectator": "Наблюдатель"
   },
   "permissions": {
     "view_dashboard": "Просмотр обзора",
@@ -371,6 +394,8 @@
       "siteName": "Название сайта",
       "domain": "Домен",
       "timezone": "Часовой пояс",
+      "accountEmail": "Email аккаунта",
+      "accountEmailDesc": "Синхронизировано из Superset",
       "workModes": "Режимы работы",
       "maintenanceMode": "Режим обслуживания",
       "maintenanceModeDesc": "Сайт будет недоступен для обычных пользователей",
@@ -422,8 +447,15 @@
       "smtpPort": "SMTP порт",
       "encryption": "Шифрование",
       "emailFrom": "Email отправителя",
-      "testEmail": "Отправить тестовое письмо",
-      "sending": "Отправка..."
+      "emailFromDesc": "Адрес, с которого будут отправляться системные письма",
+      "emailRecipient": "Email получателя",
+      "testEmailSubject": "Тема письма",
+      "testEmailBody": "Текст письма",
+      "testEmailPlaceholder": "Введите текст тестового письма...",
+      "sendTestEmail": "Отправить тестовое письмо",
+      "sending": "Отправка...",
+      "testEmailSent": "Тестовое письмо отправлено на {email}",
+      "testEmailError": "Ошибка при отправке письма"
     },
     "api": {
       "apiKey": "API ключ",

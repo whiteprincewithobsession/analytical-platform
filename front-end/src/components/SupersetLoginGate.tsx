@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Eye, EyeOff, Shield, TrendingUp, Users, Eye as EyeIcon } from 'lucide-react';
+import { BarChart3, Eye, EyeOff, Shield, TrendingUp, Users, Eye as EyeIcon, Sun, Moon } from 'lucide-react';
 
 const ROLE_MAP: Record<string, { id: string; name: string; nameEn: string; icon: any; color: string; desc: string }> = {
   admin: { id: 'admin', name: 'Admin', nameEn: 'Admin', icon: Shield, color: 'from-red-500 to-rose-600', desc: 'Full access' },
@@ -9,7 +9,7 @@ const ROLE_MAP: Record<string, { id: string; name: string; nameEn: string; icon:
 };
 
 interface SupersetLoginGateProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onLoginSuccess: () => void;
 }
 
@@ -19,6 +19,7 @@ export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ onLoginSuc
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isLightTheme, setIsLightTheme] = useState(false);
 
   const detectRole = (roles: string[], uname: string): string => {
     const rl = roles.map(r => r.toLowerCase());
@@ -97,17 +98,48 @@ export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ onLoginSuc
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 flex items-center justify-center p-4">
+    <div className={`min-h-screen flex items-center justify-center p-4 transition-all duration-500 ${
+      isLightTheme
+        ? 'bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50'
+        : 'bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900'
+    }`}>
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-500/30">
-            <BarChart3 className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
-          <p className="text-indigo-200 mt-2">Войдите для доступа к системе</p>
+        {/* Theme toggle button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setIsLightTheme(!isLightTheme)}
+            className={`p-2 rounded-lg transition-all ${
+              isLightTheme
+                ? 'bg-white/80 hover:bg-white text-indigo-600 shadow-md'
+                : 'bg-white/10 hover:bg-white/20 text-white'
+            }`}
+            title={isLightTheme ? 'Темная тема' : 'Светлая тема'}
+          >
+            {isLightTheme ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </button>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-white/20">
+        <div className="text-center mb-8">
+          <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg ${
+            isLightTheme
+              ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/40'
+              : 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/30'
+          }`}>
+            <BarChart3 className="w-8 h-8 text-white" />
+          </div>
+          <h1 className={`text-3xl font-bold ${isLightTheme ? 'text-indigo-900' : 'text-white'}`}>
+            Стратум
+          </h1>
+          <p className={`mt-2 ${isLightTheme ? 'text-indigo-600' : 'text-indigo-200'}`}>
+            Войдите для доступа к системе
+          </p>
+        </div>
+
+        <div className={`rounded-2xl p-8 shadow-xl border backdrop-blur-lg ${
+          isLightTheme
+            ? 'bg-white/90 border-indigo-200 shadow-indigo-200/50'
+            : 'bg-white/10 border-white/20'
+        }`}>
           <form onSubmit={handleLogin} className="space-y-6">
             {error && (
               <div className="p-4 rounded-xl bg-red-500/20 border border-red-500/30 text-red-200 text-sm">
@@ -116,34 +148,48 @@ export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ onLoginSuc
             )}
 
             <div>
-              <label className="block text-sm font-medium text-indigo-200 mb-2">Логин</label>
+              <label className={`block text-sm font-medium mb-2 ${
+                isLightTheme ? 'text-indigo-700' : 'text-indigo-200'
+              }`}>Логин</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Введите логин"
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-indigo-300 focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition-all"
+                className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition-all ${
+                  isLightTheme
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-900 placeholder-indigo-300'
+                    : 'bg-white/10 border-white/20 text-white placeholder-indigo-300'
+                }`}
                 required
                 autoComplete="username"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-indigo-200 mb-2">Пароль</label>
+              <label className={`block text-sm font-medium mb-2 ${
+                isLightTheme ? 'text-indigo-700' : 'text-indigo-200'
+              }`}>Пароль</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Введите пароль"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-indigo-300 focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition-all pr-12"
+                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition-all pr-12 ${
+                    isLightTheme
+                      ? 'bg-indigo-50 border-indigo-200 text-indigo-900 placeholder-indigo-300'
+                      : 'bg-white/10 border-white/20 text-white placeholder-indigo-300'
+                  }`}
                   required
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-indigo-300 hover:text-white transition-colors"
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 transition-colors ${
+                    isLightTheme ? 'text-indigo-400 hover:text-indigo-600' : 'text-indigo-300 hover:text-white'
+                  }`}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -166,8 +212,12 @@ export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ onLoginSuc
             </button>
           </form>
 
-          <div className="mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-            <p className="text-xs text-amber-200">
+          <div className={`mt-6 p-4 rounded-xl border ${
+            isLightTheme
+              ? 'bg-amber-50 border-amber-200'
+              : 'bg-amber-500/10 border-amber-500/20'
+          }`}>
+            <p className={`text-xs ${isLightTheme ? 'text-amber-700' : 'text-amber-200'}`}>
               💡 Роль назначается автоматически на основе ваших прав в Superset.
             </p>
           </div>

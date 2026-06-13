@@ -12,6 +12,7 @@ import {
   FileText,
   HelpCircle,
   Lock,
+  Layers,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalization } from '../contexts/LocalizationContext';
@@ -58,11 +59,11 @@ export function Sidebar({ activePage, onPageChange, onOpenHelp }: SidebarProps) 
       <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-700">
         {!isCollapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">M</span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Layers className="w-6 h-6 text-white" />
             </div>
             <span className="font-bold text-gray-900 dark:text-white corporate:text-white">
-              {t('common.marketplace')}
+              {t('common.stratum')}
             </span>
           </div>
         )}

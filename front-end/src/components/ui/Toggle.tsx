@@ -41,15 +41,15 @@ export const Toggle: React.FC<ToggleProps> = ({
         onClick={() => !disabled && onChange(!enabled)}
         disabled={disabled}
         className={cn(
-          'relative flex-shrink-0 w-12 h-6 rounded-full transition-colors',
+          'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors',
           enabled ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600',
           disabled ? 'cursor-not-allowed' : 'cursor-pointer'
         )}
       >
         <span
           className={cn(
-            'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
-            enabled ? 'translate-x-6' : 'translate-x-0'
+            'absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform',
+            enabled ? 'translate-x-5' : 'translate-x-0'
           )}
         />
       </button>

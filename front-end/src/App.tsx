@@ -23,6 +23,8 @@ function AppContent() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<string | null>(null);
 
+  const handleOpenSettings = (tab?: string) => setSettingsTab(tab ?? 'profile');
+
   const renderPage = () => {
     switch (activePage) {
       case 'overview': return <OverviewPage />;
@@ -44,7 +46,7 @@ function AppContent() {
         <Header
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          onOpenSettings={setSettingsTab}
+          onOpenSettings={handleOpenSettings}
           onNavigate={setActivePage}
           onOpenHelp={() => setHelpOpen(true)}
         />

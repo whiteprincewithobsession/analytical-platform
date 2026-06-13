@@ -35,7 +35,7 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
     alerts: true,
   });
 
-  const tabs = [
+  const tabs: { id: Tab; label: string; icon: typeof User }[] = [
     { id: 'profile', label: t('profile.myProfile'), icon: User },
     { id: 'notifications', label: t('profile.notifications'), icon: Bell },
     { id: 'security', label: t('profile.security'), icon: Shield },

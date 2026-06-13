@@ -23,7 +23,7 @@ const mockUsers: Record<UserRole, User> = {
   admin: { id: '1', name: 'Администратор', email: 'admin@marketplace.ru', role: 'admin' },
   analyst: { id: '2', name: 'Аналитик', email: 'analyst@marketplace.ru', role: 'analyst' },
   manager: { id: '3', name: 'Менеджер', email: 'manager@marketplace.ru', role: 'manager' },
-  viewer: { id: '4', name: 'Наблюдатель', email: 'viewer@marketplace.ru', role: 'viewer' },
+  spectator: { id: '4', name: 'Наблюдатель', email: 'viewer@marketplace.ru', role: 'spectator' },
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('admin-user');
+    sessionStorage.removeItem('superset_authenticated');
   };
 
   return (

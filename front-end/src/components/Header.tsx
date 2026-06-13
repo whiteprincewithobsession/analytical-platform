@@ -7,13 +7,17 @@ import { ThemeSwitcher } from './ThemeSwitcher';
 import { GlobalSearch } from './GlobalSearch';
 
 interface HeaderProps {
-  onOpenSettings: () => void;
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+  onOpenSettings: (tab?: string) => void;
   onNavigate?: (path: string) => void;
   onOpenHelp?: () => void;
   onOpenNotifications?: () => void;
 }
 
 export function Header({
+  sidebarOpen,
+  onToggleSidebar,
   onOpenSettings,
   onNavigate,
   onOpenHelp,

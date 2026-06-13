@@ -141,7 +141,7 @@ export function ProfileMenu({ onOpenSettings, onOpenHelp, onOpenNotifications }:
                 label={t('profile.myProfile')}
                 onClick={() => {
                   setIsOpen(false);
-                  onOpenSettings();
+                  onOpenSettings('profile');
                 }}
               />
               <MenuItem
@@ -149,7 +149,7 @@ export function ProfileMenu({ onOpenSettings, onOpenHelp, onOpenNotifications }:
                 label={t('profile.settings')}
                 onClick={() => {
                   setIsOpen(false);
-                  onOpenSettings();
+                  onOpenSettings('profile');
                 }}
               />
               <MenuItem
@@ -185,9 +185,13 @@ export function ProfileMenu({ onOpenSettings, onOpenHelp, onOpenNotifications }:
               <div className="my-2 border-t border-gray-200 dark:border-gray-700 corporate:border-slate-600" />
 
               <button
-                onClick={() => {
+                onClick={async () => {
+                  try { await fetch('/logout/', { method: 'POST', credentials: 'include' }); } catch {}
+                  try { await fetch('/api/v1/security/logout', { method: 'POST', credentials: 'include' }); } catch {}
                   logout();
                   setIsOpen(false);
+                  sessionStorage.removeItem('superset_authenticated');
+                  window.location.reload();
                 }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
               >

@@ -877,7 +877,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
     setChangelogLoading(true);
     setChangelogError(null);
     try {
-      const res = await fetch('/api/github/repos/yarikstratum/diplom/commits?per_page=50');
+      const res = await fetch('/api/github/repos/whiteprincewithobsession/analytical-platform/commits?per_page=50');
       if (res.ok) {
         const data = await res.json();
         const entries: ChangelogEntry[] = data.map((commit: any) => ({

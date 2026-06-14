@@ -61,6 +61,8 @@ services:
         kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic inventory-updates --partitions 2 --replication-factor 1 --config retention.ms=259200000
         kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic cdc-postgres --partitions 4 --replication-factor 1 --config retention.ms=604800000
         kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic flink-sink-clickhouse --partitions 3 --replication-factor 1 --config retention.ms=604800000
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic product-views --partitions 2 --replication-factor 1 --config retention.ms=259200000
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic product-views-aggregated --partitions 2 --replication-factor 1 --config retention.ms=259200000
         kafka-topics --list --bootstrap-server kafka:9092
     networks:
       - streaming-network
@@ -123,10 +125,8 @@ services:
         web.cancel.enable: true
         pipeline.max-parallelism: 128
         parallelism.default: 2
-    entrypoint: ["bash", "-c", "bash /opt/flink/custom-lib/init-connectors.sh && exec /docker-entrypoint.sh jobmanager"]
+    entrypoint: ["bash", "-c", "mkdir -p /tmp/flink-checkpoints /tmp/flink-savepoints && chmod 777 /tmp/flink-checkpoints /tmp/flink-savepoints && bash /opt/flink/custom-lib/init-connectors.sh && exec /docker-entrypoint.sh jobmanager"]
     volumes:
-      - flink_checkpoints:/tmp/flink-checkpoints
-      - flink_savepoints:/tmp/flink-savepoints
       - ./flink/jobs:/opt/flink/usrlib
       - ./flink/connectors:/opt/flink/custom-lib
     networks:
@@ -166,10 +166,8 @@ services:
         execution.checkpointing.interval: 60s
         execution.checkpointing.mode: EXACTLY_ONCE
         parallelism.default: 2
-    entrypoint: ["bash", "-c", "bash /opt/flink/custom-lib/init-connectors.sh && exec /docker-entrypoint.sh taskmanager"]
+    entrypoint: ["bash", "-c", "mkdir -p /tmp/flink-checkpoints /tmp/flink-savepoints && chmod 777 /tmp/flink-checkpoints /tmp/flink-savepoints && bash /opt/flink/custom-lib/init-connectors.sh && exec /docker-entrypoint.sh taskmanager"]
     volumes:
-      - flink_checkpoints:/tmp/flink-checkpoints
-      - flink_savepoints:/tmp/flink-savepoints
       - ./flink/jobs:/opt/flink/usrlib
       - ./flink/connectors:/opt/flink/custom-lib
     networks:

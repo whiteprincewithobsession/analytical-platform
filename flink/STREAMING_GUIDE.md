@@ -268,14 +268,102 @@ for /L %i in (1,0,2) do @timeout /t 5 /nobreak >nul && docker exec olap_retail c
 - Flink: http://localhost:8084
 - Kafka UI: http://localhost:8090
 
+## Product Views Streaming Pipeline (новый)
+
+### Архитектура
+
+```
+Python Generator (~5 events/sec)
+    |
+    | topic: product-views
+    v
+Kafka topic: product-views
+    |
+    | Flink Job: product_views_aggregation.py
+    | TUMBLE(10sec) aggregation
+    v
+Kafka topic: product-views-aggregated
+    |
+    | Kafka Engine (clickhouse)
+    v
+ClickHouse Materialized View
+    |
+    v
+analytics.product_views_streaming (MergeTree)
+```
+
+### Быстрый запуск
+
+```bash
+# 1. Streaming сервисы
+docker compose -f docker-compose.streaming.yml up -d
+
+# 2. ClickHouse к сети Kafka
+docker network connect streaming-pipeline-network olap_retail
+
+# 3. Таблицы в ClickHouse
+docker exec olap_retail clickhouse-client --multiquery < clickhouse/clickhouse-init/product_views_streaming.sql
+
+# 4. Запустить генератор событий (в отдельном терминале)
+pip install kafka-python
+python flink/product_views_generator.py
+
+# 5. Запустить Flink job
+docker cp flink/jobs/product_views_aggregation.py streaming-flink-jobmanager:/opt/flink/usrlib/product_views_aggregation.py
+docker exec streaming-flink-jobmanager flink run -py /opt/flink/usrlib/product_views_aggregation.py
+
+# 6. Проверить
+docker exec olap_retail clickhouse-client --query "SELECT count() FROM analytics.product_views_streaming"
+docker exec olap_retail clickhouse-client --query "
+SELECT window_start, window_end, total_views, unique_users,
+       round(avg_session_duration, 1) as avg_dur, round(mobile_pct, 1) as mobile_pct
+FROM analytics.product_views_streaming
+ORDER BY window_start DESC LIMIT 10 FORMAT Pretty"
+```
+
+### Агрегации (каждые 10 секунд)
+
+| Метрика | Описание |
+|---------|----------|
+| `total_views` | Общее количество просмотров |
+| `unique_users` | Уникальные пользователи |
+| `avg_session_duration` | Средняя длительность сессии (сек) |
+| `avg_scroll_depth` | Средняя глубина скролла (%) |
+| `mobile_pct` | Процент мобильных устройств (%) |
+| `electronics_views` | Просмотры электроники |
+| `clothing_views` | Просмотры одежды |
+| `home_views` | Просмотры товаров для дома |
+| `toys_views` | Просмотры игрушек |
+
+### Сброс pipeline
+
+```bash
+# Отменить Flink job
+docker exec streaming-flink-jobmanager flink cancel <JOB_ID>
+
+# Сбросить ClickHouse
+docker exec olap_retail clickhouse-client --multiquery --query "
+DROP TABLE IF EXISTS analytics.mv_kafka_to_product_views SYNC;
+DROP TABLE IF EXISTS analytics.kafka_product_views_queue SYNC;
+TRUNCATE TABLE analytics.product_views_streaming;"
+
+# Пересоздать таблицы
+docker exec olap_retail clickhouse-client --multiquery < clickhouse/clickhouse-init/product_views_streaming.sql
+
+# Перезапустить генератор + Flink job
+```
+
 ## Файлы проекта
 
 | Файл | Назначение |
 |------|------------|
 | `jobs/run-streaming-demo.py` | PyFlink job: Datagen → TUMBLE(6sec) → Kafka |
+| `jobs/product_views_aggregation.py` | PyFlink job: product-views → TUMBLE(10s) → aggregated |
+| `product_views_generator.py` | Генератор ~5 событий/сек в Kafka topic: product-views |
 | `Dockerfile` | Flink образ с PyFlink и коннекторами |
 | `connectors/` | JAR коннекторы (Kafka, JDBC, JSON) |
 | `generate_mock_events.py` | Генератор тестовых данных для Kafka |
+| `../clickhouse/clickhouse-init/product_views_streaming.sql` | ClickHouse DDL для product views |
 
 ## Ключевые параметры
 

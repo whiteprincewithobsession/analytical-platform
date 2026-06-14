@@ -1,0 +1,121 @@
+-- Seed orders with valid user_ids only
+BEGIN;
+
+DELETE FROM sales.order_items;
+DELETE FROM sales.orders;
+ALTER SEQUENCE sales.orders_id_seq RESTART WITH 1;
+ALTER SEQUENCE sales.order_items_id_seq RESTART WITH 1;
+
+-- Valid users: 8,30,31,32,33,34,35,37,38,41,42,43,44,45,46,48,49,52,53,54,55,56,57,59,60,63,64,65,66,67,68,70,71,74,75,76,77,78,79,81,82,85,86,87,88,89,90,92,93
+
+INSERT INTO sales.orders (id, user_id, order_date, status, total_amount, payment_method_code, delivery_type_code, promo_code, discount_amount, source_channel, comments, tracking_number, currency_code, created_at, updated_at)
+VALUES
+  (1,  53, CURRENT_DATE - 0,  'processing', 189990, 'card',            'courier_express',   NULL,      0,    'web',    'Доставка завтра',          'TRK-2026-001', 'RUB', now(), now()),
+  (2,  54, CURRENT_DATE - 1,  'confirmed',  74990,  'tinkoff_pay',     'courier_standard',  'SALE10',  7499, 'mobile', '',                         'TRK-2026-002', 'RUB', now(), now()),
+  (3,  55, CURRENT_DATE - 1,  'pending',    34990,  'apple_pay',       'pickup_point',      NULL,      0,    'web',    'Самовывоз ТЦ Мега',        'TRK-2026-003', 'RUB', now(), now()),
+  (4,  56, CURRENT_DATE - 2,  'shipped',    219990, 'sbp',             'courier_express',   NULL,      0,    'web',    '',                         'TRK-2026-004', 'RUB', now(), now()),
+  (5,  57, CURRENT_DATE - 2,  'delivered',  24990,  'card',            'courier_standard',  NULL,      0,    'mobile', 'Доставлено в срок',        'TRK-2026-005', 'RUB', now(), now()),
+  (6,  59, CURRENT_DATE - 3,  'delivered',  69990,  'sberbank_online', 'courier_next_day',  'WINTER',  5000, 'web',    '',                         'TRK-2026-006', 'RUB', now(), now()),
+  (7,  60, CURRENT_DATE - 3,  'delivered',  12990,  'yoomoney',        'pickup_point',      NULL,      0,    'mobile', '',                         'TRK-2026-007', 'RUB', now(), now()),
+  (8,  63, CURRENT_DATE - 4,  'cancelled',  89990,  'card',            'courier_standard',  NULL,      0,    'web',    'Клиент отменил',           NULL,           'RUB', now(), now()),
+  (9,  64, CURRENT_DATE - 4,  'delivered',  15990,  'qiwi',            'post_standard',     NULL,      0,    'mobile', '',                         'TRK-2026-009', 'RUB', now(), now()),
+  (10, 65, CURRENT_DATE - 5,  'delivered',  249990, 'card',            'courier_express',   NULL,      0,    'web',    'Подарочная упаковка',      'TRK-2026-010', 'RUB', now(), now()),
+  (11, 66, CURRENT_DATE - 5,  'delivered',  64990,  'sbp',             'courier_standard',  'NEWYEAR', 3000, 'web',    '',                         'TRK-2026-011', 'RUB', now(), now()),
+  (12, 67, CURRENT_DATE - 6,  'delivered',  49990,  'tinkoff_pay',     'courier_next_day',  NULL,      0,    'mobile', '',                         'TRK-2026-012', 'RUB', now(), now()),
+  (13, 68, CURRENT_DATE - 6,  'processing', 89990,  'card',            'courier_express',   NULL,      0,    'web',    '',                         'TRK-2026-013', 'RUB', now(), now()),
+  (14, 70, CURRENT_DATE - 7,  'delivered',  34990,  'apple_pay',       'pickup_point',      NULL,      0,    'mobile', '',                         'TRK-2026-014', 'RUB', now(), now()),
+  (15, 71, CURRENT_DATE - 7,  'delivered',  149990, 'card',            'courier_standard',  NULL,      0,    'web',    '',                         'TRK-2026-015', 'RUB', now(), now()),
+  (16, 74, CURRENT_DATE - 8,  'delivered',  79990,  'sbp',             'courier_express',   'SALE10',  7999, 'web',    '',                         'TRK-2026-016', 'RUB', now(), now()),
+  (17, 75, CURRENT_DATE - 8,  'delivered',  69990,  'card',            'courier_standard',  NULL,      0,    'mobile', '',                         'TRK-2026-017', 'RUB', now(), now()),
+  (18, 76, CURRENT_DATE - 9,  'delivered',  14990,  'qiwi',            'post_registered',   NULL,      0,    'web',    '',                         'TRK-2026-018', 'RUB', now(), now()),
+  (19, 77, CURRENT_DATE - 10, 'delivered',  139990, 'card',            'courier_express',   NULL,      0,    'web',    '',                         'TRK-2026-019', 'RUB', now(), now()),
+  (20, 78, CURRENT_DATE - 10, 'delivered',  39990,  'tinkoff_pay',     'pickup_point',      NULL,      0,    'mobile', '',                         'TRK-2026-020', 'RUB', now(), now()),
+  (21, 79, CURRENT_DATE - 11, 'delivered',  49990,  'card',            'courier_standard',  'WINTER',  5000, 'web',    '',                         'TRK-2026-021', 'RUB', now(), now()),
+  (22, 81, CURRENT_DATE - 12, 'delivered',  27990,  'apple_pay',       'courier_next_day',  NULL,      0,    'mobile', '',                         'TRK-2026-022', 'RUB', now(), now()),
+  (23, 82, CURRENT_DATE - 12, 'delivered',  189990, 'sbp',             'courier_express',   NULL,      0,    'web',    '',                         'TRK-2026-023', 'RUB', now(), now()),
+  (24, 85, CURRENT_DATE - 13, 'delivered',  129990, 'card',            'courier_standard',  NULL,      0,    'web',    '',                         'TRK-2026-024', 'RUB', now(), now()),
+  (25, 86, CURRENT_DATE - 14, 'delivered',  54990,  'yoomoney',        'courier_standard',  NULL,      0,    'mobile', '',                         'TRK-2026-025', 'RUB', now(), now()),
+  (26, 87, CURRENT_DATE - 15, 'delivered',  24990,  'card',            'pickup_point',      NULL,      0,    'web',    '',                         'TRK-2026-026', 'RUB', now(), now()),
+  (27, 88, CURRENT_DATE - 16, 'delivered',  89990,  'tinkoff_pay',     'courier_express',   'SALE10',  8999, 'mobile', '',                         'TRK-2026-027', 'RUB', now(), now()),
+  (28, 89, CURRENT_DATE - 17, 'delivered',  79990,  'card',            'courier_standard',  NULL,      0,    'web',    '',                         'TRK-2026-028', 'RUB', now(), now()),
+  (29, 90, CURRENT_DATE - 18, 'delivered',  15990,  'qiwi',            'post_standard',     NULL,      0,    'web',    '',                         'TRK-2026-029', 'RUB', now(), now()),
+  (30, 92, CURRENT_DATE - 19, 'delivered',  399990, 'card',            'courier_express',   NULL,      0,    'web',    'VIP-доставка',             'TRK-2026-030', 'RUB', now(), now()),
+  (31, 93, CURRENT_DATE - 20, 'delivered',  49990,  'apple_pay',       'courier_next_day',  NULL,      0,    'mobile', '',                         'TRK-2026-031', 'RUB', now(), now()),
+  (32, 8,  CURRENT_DATE - 21, 'delivered',  69990,  'sbp',             'courier_standard',  NULL,      0,    'web',    '',                         'TRK-2026-032', 'RUB', now(), now()),
+  (33, 30, CURRENT_DATE - 22, 'delivered',  149990, 'card',            'courier_express',   NULL,      0,    'web',    '',                         'TRK-2026-033', 'RUB', now(), now()),
+  (34, 31, CURRENT_DATE - 23, 'delivered',  34990,  'tinkoff_pay',     'pickup_point',      NULL,      0,    'mobile', '',                         'TRK-2026-034', 'RUB', now(), now()),
+  (35, 32, CURRENT_DATE - 24, 'delivered',  79990,  'card',            'courier_standard',  'NEWYEAR', 5000, 'web',    '',                         'TRK-2026-035', 'RUB', now(), now()),
+  (36, 33, CURRENT_DATE - 25, 'delivered',  24990,  'apple_pay',       'courier_next_day',  NULL,      0,    'mobile', '',                         'TRK-2026-036', 'RUB', now(), now()),
+  (37, 34, CURRENT_DATE - 26, 'delivered',  199990, 'card',            'courier_express',   NULL,      0,    'web',    '',                         'TRK-2026-037', 'RUB', now(), now()),
+  (38, 35, CURRENT_DATE - 27, 'delivered',  12990,  'qiwi',            'post_standard',     NULL,      0,    'web',    '',                         'TRK-2026-038', 'RUB', now(), now()),
+  (39, 37, CURRENT_DATE - 28, 'delivered',  129990, 'sbp',             'courier_standard',  NULL,      0,    'mobile', '',                         'TRK-2026-039', 'RUB', now(), now()),
+  (40, 38, CURRENT_DATE - 29, 'delivered',  89990,  'card',            'courier_express',   NULL,      0,    'web',    '',                         'TRK-2026-040', 'RUB', now(), now()),
+  (41, 41, CURRENT_DATE - 30, 'delivered',  54990,  'tinkoff_pay',     'courier_standard',  NULL,      0,    'web',    '',                         'TRK-2026-041', 'RUB', now(), now()),
+  (42, 42, CURRENT_DATE - 32, 'delivered',  69990,  'card',            'courier_next_day',  NULL,      0,    'mobile', '',                         'TRK-2026-042', 'RUB', now(), now()),
+  (43, 43, CURRENT_DATE - 34, 'delivered',  24990,  'apple_pay',       'pickup_point',      NULL,      0,    'web',    '',                         'TRK-2026-043', 'RUB', now(), now()),
+  (44, 44, CURRENT_DATE - 36, 'delivered',  149990, 'card',            'courier_express',   'SALE10',  14999,'web',    '',                         'TRK-2026-044', 'RUB', now(), now()),
+  (45, 45, CURRENT_DATE - 38, 'delivered',  39990,  'sbp',             'courier_standard',  NULL,      0,    'mobile', '',                         'TRK-2026-045', 'RUB', now(), now()),
+  (46, 46, CURRENT_DATE - 40, 'delivered',  89990,  'card',            'courier_express',   NULL,      0,    'web',    '',                         'TRK-2026-046', 'RUB', now(), now()),
+  (47, 48, CURRENT_DATE - 42, 'delivered',  49990,  'tinkoff_pay',     'courier_standard',  NULL,      0,    'web',    '',                         'TRK-2026-047', 'RUB', now(), now()),
+  (48, 49, CURRENT_DATE - 45, 'delivered',  189990, 'card',            'courier_express',   NULL,      0,    'web',    '',                         'TRK-2026-048', 'RUB', now(), now()),
+  (49, 52, CURRENT_DATE - 50, 'delivered',  79990,  'apple_pay',       'courier_standard',  NULL,      0,    'mobile', '',                         'TRK-2026-049', 'RUB', now(), now()),
+  (50, 8,  CURRENT_DATE - 55, 'delivered',  34990,  'sbp',             'pickup_point',      NULL,      0,    'web',    '',                         'TRK-2026-050', 'RUB', now(), now());
+
+SELECT setval('sales.orders_id_seq', (SELECT MAX(id) FROM sales.orders));
+
+-- Order items with correct prices
+INSERT INTO sales.order_items (id, order_id, product_id, quantity, price, created_at) VALUES
+  (1,  1,  1,  1, 189990, now()),
+  (2,  2,  26, 1, 74990,  now()),
+  (3,  3,  40, 1, 34990,  now()),
+  (4,  4,  12, 1, 219990, now()),
+  (5,  5,  17, 1, 24990,  now()),
+  (6,  6,  5,  1, 69990,  now()),
+  (7,  7,  22, 1, 12990,  now()),
+  (8,  8,  23, 1, 89990,  now()),
+  (9,  9,  42, 1, 15990,  now()),
+  (10, 10, 9,  1, 249990, now()),
+  (11, 11, 7,  1, 64990,  now()),
+  (12, 12, 24, 1, 49990,  now()),
+  (13, 13, 34, 1, 89990,  now()),
+  (14, 14, 40, 1, 34990,  now()),
+  (15, 15, 2,  1, 149990, now()),
+  (16, 16, 6,  1, 79990,  now()),
+  (17, 17, 5,  1, 69990,  now()),
+  (18, 18, 22, 1, 14990,  now()),
+  (19, 19, 3,  1, 139990, now()),
+  (20, 20, 25, 1, 39990,  now()),
+  (21, 21, 24, 1, 49990,  now()),
+  (22, 22, 20, 1, 27990,  now()),
+  (23, 23, 1,  1, 189990, now()),
+  (24, 24, 16, 1, 129990, now()),
+  (25, 25, 37, 1, 54990,  now()),
+  (26, 26, 17, 1, 24990,  now()),
+  (27, 27, 34, 1, 89990,  now()),
+  (28, 28, 6,  1, 79990,  now()),
+  (29, 29, 43, 1, 15990,  now()),
+  (30, 30, 9,  1, 399990, now()),
+  (31, 31, 24, 1, 49990,  now()),
+  (32, 32, 5,  1, 69990,  now()),
+  (33, 33, 2,  1, 149990, now()),
+  (34, 34, 40, 1, 34990,  now()),
+  (35, 35, 6,  1, 79990,  now()),
+  (36, 36, 17, 1, 24990,  now()),
+  (37, 37, 8,  1, 199990, now()),
+  (38, 38, 22, 1, 12990,  now()),
+  (39, 39, 3,  1, 129990, now()),
+  (40, 40, 34, 1, 89990,  now()),
+  (41, 41, 37, 1, 54990,  now()),
+  (42, 42, 5,  1, 69990,  now()),
+  (43, 43, 17, 1, 24990,  now()),
+  (44, 44, 2,  1, 149990, now()),
+  (45, 45, 25, 1, 39990,  now()),
+  (46, 46, 34, 1, 89990,  now()),
+  (47, 47, 24, 1, 49990,  now()),
+  (48, 48, 1,  1, 189990, now()),
+  (49, 49, 6,  1, 79990,  now()),
+  (50, 50, 40, 1, 34990,  now());
+
+SELECT setval('sales.order_items_id_seq', (SELECT MAX(id) FROM sales.order_items));
+
+COMMIT;

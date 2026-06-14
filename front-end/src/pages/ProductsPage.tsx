@@ -14,10 +14,12 @@ import {
   Save,
   AlertTriangle,
   Package,
+  Download,
 } from 'lucide-react';
 import { PermissionGate } from '../components/PermissionGate';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLocalization } from '../contexts/LocalizationContext';
+import { exportToCSV, Column } from '../utils/export';
 
 // ── Types ──────────────────────────────────────────────────────
 interface Product {
@@ -552,6 +554,23 @@ export function ProductsPage() {
     }
   };
 
+  const handleExportProducts = () => {
+    const columns: Column<Product>[] = [
+      { header: language === 'ru' ? 'Код' : 'Code', accessor: p => p.code },
+      { header: language === 'ru' ? 'Название' : 'Name', accessor: p => p.name },
+      { header: language === 'ru' ? 'Категория' : 'Category', accessor: p => p.category_name },
+      { header: language === 'ru' ? 'Цена (₽)' : 'Price (₽)', accessor: p => p.price },
+      { header: language === 'ru' ? 'Себестоимость (₽)' : 'Cost (₽)', accessor: p => p.cost ?? null },
+      { header: language === 'ru' ? 'Артикул' : 'SKU', accessor: p => p.sku },
+      { header: language === 'ru' ? 'Остаток' : 'Stock', accessor: p => p.stock },
+      { header: language === 'ru' ? 'Статус' : 'Status', accessor: p => p.status === 'active' ? (language === 'ru' ? 'Активен' : 'Active') : (language === 'ru' ? 'Архив' : 'Archived') },
+      { header: language === 'ru' ? 'Описание' : 'Description', accessor: p => p.description || '—' },
+    ];
+
+    const date = new Date().toISOString().slice(0, 10);
+    exportToCSV(products, columns, `products-${date}`);
+  };
+
   // Build flat list with indentation for hierarchy
   const buildCategoryTree = (cats: Category[]): Category[] => {
     const result: Category[] = [];
@@ -678,6 +697,17 @@ export function ProductsPage() {
               <List className="w-4 h-4" />
             </button>
           </div>
+
+          <PermissionGate permission="export_data">
+            <button
+              onClick={handleExportProducts}
+              disabled={!products.length}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              {language === 'ru' ? 'Экспорт' : 'Export'}
+            </button>
+          </PermissionGate>
         </div>
       </div>
 

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, User, Bell, Shield, Palette, Globe, Save, Key, Activity, Copy, Check, Trash2 } from 'lucide-react';
+import { X, User, Bell, Shield, Palette, Globe, Save, Key, Activity, Copy, Check, Trash2, Download, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme, ThemeMode } from '../contexts/ThemeContext';
 import { useLocalization } from '../contexts/LocalizationContext';
+import { useActivity, ActivityEntry } from '../contexts/ActivityContext';
 import { apiKeys } from '../data/mockData';
 
 interface SettingsModalProps {
@@ -13,12 +14,36 @@ interface SettingsModalProps {
 
 type Tab = 'profile' | 'notifications' | 'security' | 'appearance' | 'language' | 'api' | 'activity';
 
+function ActivityDot({ type }: { type: string }) {
+  const colorMap: Record<string, string> = {
+    login: 'bg-green-500',
+    logout: 'bg-red-500',
+    navigation: 'bg-blue-500',
+    export: 'bg-purple-500',
+    settings_change: 'bg-yellow-500',
+    theme_change: 'bg-pink-500',
+    language_change: 'bg-cyan-500',
+    search: 'bg-indigo-500',
+    report_create: 'bg-emerald-500',
+    report_export: 'bg-violet-500',
+    superset_view: 'bg-orange-500',
+    product_edit: 'bg-teal-500',
+    user_action: 'bg-amber-500',
+    notification_view: 'bg-sky-500',
+    custom: 'bg-gray-500',
+  };
+  const color = colorMap[type] || colorMap.custom;
+  return <span className={`w-2 h-2 rounded-full ${color} flex-shrink-0`} />;
+}
+
 export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps) {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLocalization();
+  const { entries, clear } = useActivity();
   const [activeTabState, setActiveTabState] = useState<Tab>('profile');
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
+  const [activityLimit, setActivityLimit] = useState(20);
 
 
   useEffect(() => {
@@ -26,6 +51,63 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
       setActiveTabState(activeTab as Tab);
     }
   }, [activeTab]);
+
+  const displayedActivities = entries.slice(0, activityLimit);
+
+  const formatActivityTime = (isoString: string): string => {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHrs / 24);
+
+    if (language === 'ru') {
+      if (diffMin < 1) return 'Только что';
+      if (diffMin < 60) return `${diffMin} мин. назад`;
+      if (diffHrs < 24) return `${diffHrs} ч. назад`;
+      if (diffDays < 7) return `${diffDays} дн. назад`;
+      return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    } else {
+      if (diffMin < 1) return 'Just now';
+      if (diffMin < 60) return `${diffMin}m ago`;
+      if (diffHrs < 24) return `${diffHrs}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString('en-US') + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+  };
+
+  const getActivityLabel = (entry: ActivityEntry): string => {
+    const key = `activity.types.${entry.actionKey}`;
+    const translated = t(key);
+    // If translation returns the key itself, fallback to actionKey
+    if (translated === key || translated === entry.actionKey) {
+      return entry.actionKey;
+    }
+    return translated;
+  };
+
+  const handleDownloadLog = () => {
+    const logData = entries.map(e => ({
+      time: e.timestamp,
+      type: e.type,
+      action: e.actionKey,
+      details: e.details || '',
+      ip: e.ip || '',
+    }));
+    const blob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `activity-log-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleClearLog = () => {
+    clear();
+    setActivityLimit(20);
+  };
 
   const [notificationSettings, setNotificationSettings] = useState({
     email: true,
@@ -65,15 +147,6 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
     setCopiedKeyId(id);
     setTimeout(() => setCopiedKeyId(null), 2000);
   };
-
-
-  const activityLog = [
-    { id: 1, action: { ru: 'Вход в систему', en: 'Login' }, time: '2024-03-31 14:30', ip: '192.168.1.100' },
-    { id: 2, action: { ru: 'Изменение настроек', en: 'Settings changed' }, time: '2024-03-31 13:15', ip: '192.168.1.100' },
-    { id: 3, action: { ru: 'Экспорт отчёта', en: 'Report exported' }, time: '2024-03-31 11:45', ip: '192.168.1.100' },
-    { id: 4, action: { ru: 'Создание пользователя', en: 'User created' }, time: '2024-03-30 16:20', ip: '192.168.1.100' },
-    { id: 5, action: { ru: 'Вход в систему', en: 'Login' }, time: '2024-03-30 09:00', ip: '192.168.1.100' },
-  ];
 
   if (!isOpen) return null;
 
@@ -333,55 +406,101 @@ export function SettingsModal({ isOpen, onClose, activeTab }: SettingsModalProps
             {activeTabState === 'activity' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-medium text-gray-900 dark:text-white">
-                    {language === 'ru' ? 'История активности' : 'Activity History'}
+                  <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {t('activity.title')}
                   </h3>
-                  <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-                    {language === 'ru' ? 'Скачать лог' : 'Download log'}
-                  </button>
+                  <div className="flex gap-2">
+                    {entries.length > 0 && (
+                      <button
+                        onClick={handleClearLog}
+                        className="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:underline"
+                      >
+                        {t('activity.clearLog')}
+                      </button>
+                    )}
+                    <button
+                      onClick={handleDownloadLog}
+                      className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                    >
+                      <Download className="w-3 h-3" />
+                      {t('activity.downloadLog')}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700/50 corporate:bg-slate-700/50 rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-100 dark:bg-gray-800 corporate:bg-slate-800">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                          {language === 'ru' ? 'Действие' : 'Action'}
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                          {language === 'ru' ? 'Время' : 'Time'}
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                          IP адрес
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                      {activityLog.map((log) => (
-                        <tr key={log.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/30">
-                          <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                            {language === 'ru' ? log.action.ru : log.action.en}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono">
-                            {log.time}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono">
-                            {log.ip}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {displayedActivities.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+                    <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">{t('activity.noActivity')}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-700">
+                      {/* Fixed header */}
+                      <div className="bg-gray-100 dark:bg-gray-800 corporate:bg-slate-800 px-4 py-3">
+                        <table className="w-full min-w-[600px]">
+                          <thead>
+                            <tr>
+                              <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                                {t('activity.columns.action')}
+                              </th>
+                              <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                                {t('activity.columns.time')}
+                              </th>
+                              <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden sm:table-cell">
+                                {t('activity.columns.ipAddress')}
+                              </th>
+                              <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden lg:table-cell">
+                                {t('activity.columns.details')}
+                              </th>
+                            </tr>
+                          </thead>
+                        </table>
+                      </div>
+                      {/* Scrollable body */}
+                      <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
+                        <table className="w-full min-w-[600px]">
+                          <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                            {displayedActivities.map((entry) => (
+                              <tr key={entry.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <ActivityDot type={entry.type} />
+                                    {getActivityLabel(entry)}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono whitespace-nowrap">
+                                  {formatActivityTime(entry.timestamp)}
+                                </td>
+                                <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono hidden sm:table-cell">
+                                  {entry.ip || '—'}
+                                </td>
+                                <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500 max-w-[200px] truncate hidden lg:table-cell">
+                                  {entry.details || '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
 
-                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                  <span>
-                    {language === 'ru' ? 'Показано последних 5 действий' : 'Showing last 5 activities'}
-                  </span>
-                  <button className="text-indigo-600 dark:text-indigo-400 hover:underline">
-                    {language === 'ru' ? 'Показать все' : 'View all'}
-                  </button>
-                </div>
+                    <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                      <span>
+                        {t('activity.showingLast').replace('{count}', String(displayedActivities.length))}
+                      </span>
+                      {entries.length > activityLimit && (
+                        <button
+                          onClick={() => setActivityLimit(prev => prev + 20)}
+                          className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
+                          {t('activity.viewAll')}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

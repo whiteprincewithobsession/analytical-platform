@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback, useRef } from 'react';
 
 export type UserRole = 'admin' | 'analyst' | 'manager' | 'spectator';
 
@@ -15,6 +15,7 @@ interface AuthContextType {
   login: (role: UserRole) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  setActivityLogger: (logFn: (type: string, details?: string) => void) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const activityLoggerRef = useRef<((type: string, details?: string) => void) | null>(null);
+
+  const setActivityLogger = useCallback((logFn: (type: string, details?: string) => void) => {
+    activityLoggerRef.current = logFn;
+  }, []);
+
   const login = (role: UserRole) => {
     const userData = mockUsers[role];
     setUser(userData);
@@ -39,13 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    if (activityLoggerRef.current) {
+      activityLoggerRef.current('logout', `User: ${user?.name}`);
+    }
     setUser(null);
     localStorage.removeItem('admin-user');
     sessionStorage.removeItem('superset_authenticated');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, setActivityLogger }}>
       {children}
     </AuthContext.Provider>
   );

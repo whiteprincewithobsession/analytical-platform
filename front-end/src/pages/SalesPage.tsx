@@ -17,6 +17,7 @@ import { PermissionGate } from '../components/PermissionGate';
 import { usePermissions } from '../hooks/usePermissions';
 import { useLocalization } from '../contexts/LocalizationContext';
 import { SupersetDashboard } from '../components/SupersetDashboard';
+import { exportToCSV, Column } from '../utils/export';
 
 // ── Types ──────────────────────────────────────────────────────
 interface OrderItem {
@@ -323,6 +324,28 @@ export function SalesPage() {
   const formatCurrency = (val: number) =>
     val.toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 });
 
+  const handleExportSales = () => {
+    const columns: Column<Order>[] = [
+      { header: language === 'ru' ? 'ID' : 'ID', accessor: o => o.id },
+      { header: language === 'ru' ? 'Дата' : 'Date', accessor: o => o.order_date },
+      { header: language === 'ru' ? 'Клиент' : 'Customer', accessor: o => o.user_name },
+      { header: language === 'ru' ? 'Статус' : 'Status', accessor: o => o.status_label },
+      { header: language === 'ru' ? 'Оплата' : 'Payment', accessor: o => o.payment_label },
+      { header: language === 'ru' ? 'Доставка' : 'Delivery', accessor: o => o.delivery_label },
+      { header: language === 'ru' ? 'Сумма (₽)' : 'Amount (₽)', accessor: o => o.total_amount },
+      { header: language === 'ru' ? 'Скидка (₽)' : 'Discount (₽)', accessor: o => o.discount_amount || null },
+      { header: language === 'ru' ? 'Канал' : 'Channel', accessor: o => o.source_channel },
+      { header: language === 'ru' ? 'Промокод' : 'Promo', accessor: o => o.promo_code || '—' },
+      { header: language === 'ru' ? 'Трек-номер' : 'Tracking', accessor: o => o.tracking_number || '—' },
+      { header: language === 'ru' ? 'Адрес' : 'Address', accessor: o => o.address?.full || '—' },
+      { header: language === 'ru' ? 'Комментарий' : 'Comment', accessor: o => o.comments || '—' },
+      { header: language === 'ru' ? 'Товары' : 'Items', accessor: o => o.items.map(i => `${i.product_name} x${i.quantity}`).join(', ') },
+    ];
+
+    const date = new Date().toISOString().slice(0, 10);
+    exportToCSV(orders, columns, `sales-${date}`);
+  };
+
   const tabs = [
     { id: 'orders' as const, label: language === 'ru' ? 'Все продажи' : 'All Sales', icon: ShoppingCart },
     { id: 'dashboard' as const, label: language === 'ru' ? 'Дашборд' : 'Dashboard', icon: BarChart3 },
@@ -447,7 +470,11 @@ export function SalesPage() {
               </button>
 
               <PermissionGate permission="export_data">
-                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                <button
+                  onClick={() => handleExportSales()}
+                  disabled={!orders.length}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <Download className="w-4 h-4" />
                   {t('common.export')}
                 </button>

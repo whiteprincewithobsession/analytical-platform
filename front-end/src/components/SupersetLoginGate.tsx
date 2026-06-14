@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart3, Eye, EyeOff, Shield, TrendingUp, Users, Eye as EyeIcon, Sun, Moon } from 'lucide-react';
+import { useActivity } from '../contexts/ActivityContext';
 
 const ROLE_MAP: Record<string, { id: string; name: string; nameEn: string; icon: any; color: string; desc: string }> = {
   admin: { id: 'admin', name: 'Admin', nameEn: 'Admin', icon: Shield, color: 'from-red-500 to-rose-600', desc: 'Full access' },
@@ -20,6 +21,7 @@ export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ onLoginSuc
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isLightTheme, setIsLightTheme] = useState(false);
+  const { log } = useActivity();
 
   const detectRole = (roles: string[], uname: string): string => {
     const rl = roles.map(r => r.toLowerCase());
@@ -84,6 +86,8 @@ export const SupersetLoginGate: React.FC<SupersetLoginGateProps> = ({ onLoginSuc
           email: supersetUser.email || '',
           role: roleInfo.id,
         }));
+
+        log({ type: 'login', actionKey: 'login.success', details: `User: ${supersetUser.username || username}` });
 
         sessionStorage.setItem('superset_authenticated', 'true');
         onLoginSuccess();

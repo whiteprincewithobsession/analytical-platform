@@ -65,7 +65,7 @@ export function ProfileMenu({ onOpenSettings, onOpenHelp, onOpenNotifications }:
 
   const handleActivityClick = () => {
     setIsOpen(false);
-    onOpenSettings('security');
+    onOpenSettings('activity');
   };
 
   return (

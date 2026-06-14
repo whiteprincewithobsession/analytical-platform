@@ -104,3 +104,14 @@ flink/results/
 flink/__pycache__/
 flink/*.pyc
 flink/connectors/*.jar
+
+# Temporary files
+cookies*.txt
+*.zip
+*.png
+flink_job_output.txt
+tsc_check.txt
+tsc_stderr.txt
+tsc_stdout.txt
+check_*.py
+.qwen/
